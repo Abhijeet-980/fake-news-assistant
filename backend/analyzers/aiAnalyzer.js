@@ -92,8 +92,8 @@ Be critical. Look for:
 
 Respond with ONLY the JSON, no other text.`;
 
-    // Models to try in order (fastest first, with fallbacks)
-    const modelsToTry = ['gemini-2.0-flash-lite', 'gemini-2.0-flash'];
+    // Models to try in order (best first, with fallbacks)
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
     for (const modelName of modelsToTry) {
