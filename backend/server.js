@@ -68,6 +68,9 @@ app.post('/analyze', async (req, res) => {
         let contentToAnalyze = trimmedText;
         let urlData = null;
 
+        // Check if input looks like just a domain (no real content)
+        const isDomainOnly = /^(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?\/?$/i.test(trimmedText);
+
         // Check if input is a URL
         if (isValidUrl(trimmedText)) {
             console.log(`[${new Date().toISOString()}] URL detected, fetching content...`);
@@ -90,12 +93,29 @@ app.post('/analyze', async (req, res) => {
                 };
             } else {
                 console.log(`[${new Date().toISOString()}] URL fetch failed: ${extracted.error}`);
+
+                // If it's just a domain and fetch failed, we can't analyze
+                if (isDomainOnly) {
+                    return res.status(400).json({
+                        error: 'Cannot analyze domain only',
+                        message: 'We could not fetch content from this URL. Please paste the article text directly, or provide a full article URL.',
+                        suggestion: extracted.suggestion || 'Try copying and pasting the article text instead.'
+                    });
+                }
+
                 // Still analyze the URL itself (domain check will work)
                 urlData = {
                     originalUrl: trimmedText,
                     fetchError: extracted.error
                 };
             }
+        } else if (isDomainOnly) {
+            // User entered just a domain without http/https
+            return res.status(400).json({
+                error: 'Cannot analyze domain only',
+                message: 'Please provide actual article content to analyze, not just a website domain.',
+                suggestion: 'Paste the full article text or a complete article URL.'
+            });
         }
 
         // Perform analysis
@@ -106,7 +126,7 @@ app.post('/analyze', async (req, res) => {
         if (urlData && urlData.publishedDate) {
             analysisOptions.publishedDate = urlData.publishedDate;
         }
-        const result = analyzeCredibility(contentToAnalyze, analysisOptions);
+        const result = await analyzeCredibility(contentToAnalyze, analysisOptions);
 
         // Add URL metadata to result if applicable
         if (urlData) {

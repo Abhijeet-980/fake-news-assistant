@@ -6,6 +6,7 @@
 const { analyzeDomain } = require('./domainAnalyzer');
 const { analyzeLanguage } = require('./languageAnalyzer');
 const { analyzeDateRelevance } = require('./dateAnalyzer');
+const { analyzeFactChecks } = require('./factCheckAnalyzer');
 
 // Critical thinking prompts based on content type
 const thinkingPrompts = {
@@ -186,10 +187,11 @@ function generateSearchUrl(text) {
  * @param {string} text - Text or URL to analyze
  * @param {Object} options - Optional parameters
  * @param {string} options.publishedDate - Published date from URL extraction
- * @returns {Object} - Complete analysis result
+ * @param {boolean} options.skipFactCheck - Skip fact-check API (for faster response)
+ * @returns {Promise<Object>} - Complete analysis result
  */
-function analyzeCredibility(text, options = {}) {
-    const { publishedDate } = options;
+async function analyzeCredibility(text, options = {}) {
+    const { publishedDate, skipFactCheck } = options;
 
     // Perform domain analysis
     const domainAnalysis = analyzeDomain(text);
@@ -200,15 +202,33 @@ function analyzeCredibility(text, options = {}) {
     // Perform date analysis (pass published date if available)
     const dateAnalysis = analyzeDateRelevance(text, publishedDate);
 
+    // Perform fact-check analysis (async)
+    let factCheckAnalysis = null;
+    if (!skipFactCheck) {
+        try {
+            factCheckAnalysis = await analyzeFactChecks(text);
+        } catch (error) {
+            console.error('[Fact-Check] Analysis failed:', error.message);
+            factCheckAnalysis = {
+                hasApiKey: false,
+                factChecks: [],
+                searchUrls: [],
+                summary: null,
+                score: 0
+            };
+        }
+    }
+
     // Calculate total score (max 100)
     // Domain: 30 points, Emotional: 25 points, Sensationalism: 20 points, Evidence: 25 points
-    // Date analysis adds bonus/penalty
+    // Date analysis adds bonus/penalty, Fact-check adds bonus/penalty
     let totalScore =
         domainAnalysis.score +
         languageAnalysis.emotional.score +
         languageAnalysis.sensationalism.score +
         languageAnalysis.evidence.score +
-        (dateAnalysis.score || 0); // Add date bonus/penalty
+        (dateAnalysis.score || 0) +
+        (factCheckAnalysis?.score || 0);
 
     // Clamp score between 0 and 100
     totalScore = Math.min(100, Math.max(0, totalScore));
@@ -237,6 +257,11 @@ function analyzeCredibility(text, options = {}) {
         reasons.push(dateAnalysis.reason);
     }
 
+    // Add fact-check summary as a reason if exists
+    if (factCheckAnalysis?.summary) {
+        reasons.push(factCheckAnalysis.summary);
+    }
+
     // Sort reasons: negative first, then warning, then positive
     const typeOrder = { negative: 0, warning: 1, info: 2, positive: 3 };
     reasons.sort((a, b) => typeOrder[a.type] - typeOrder[b.type]);
@@ -258,6 +283,12 @@ function analyzeCredibility(text, options = {}) {
         thinkingPrompts: thinkingPromptsSelected,
         recommendation,
         searchUrl,
+        factChecks: factCheckAnalysis ? {
+            hasApiKey: factCheckAnalysis.hasApiKey,
+            results: factCheckAnalysis.factChecks,
+            searchUrls: factCheckAnalysis.searchUrls,
+            score: factCheckAnalysis.score
+        } : null,
         analysis: {
             domain: {
                 detected: domainAnalysis.domain,

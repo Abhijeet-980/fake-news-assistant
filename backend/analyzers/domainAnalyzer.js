@@ -11,23 +11,33 @@ const suspiciousSources = require('../data/suspicious_sources.json');
  * @param {string} text - Text that may contain a URL
  * @returns {string|null} - Extracted domain or null
  */
+/**
+ * Extract domain from a URL string
+ * @param {string} text - Text that may contain a URL
+ * @returns {string|null} - Extracted domain or null
+ */
 function extractDomain(text) {
-    // URL regex pattern
+    // URL regex pattern with protocol
     const urlPattern = /https?:\/\/(?:www\.)?([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)/gi;
-    const match = urlPattern.exec(text);
-    
+    let match = urlPattern.exec(text);
+
     if (match) {
         return match[1].toLowerCase();
     }
-    
-    // Try to match domain-like patterns without protocol
-    const domainPattern = /(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?)/gi;
+
+    // Try to match domain-like patterns without protocol (e.g., www.example.com or example.com)
+    const domainPattern = /\b(?:www\.)?([a-zA-Z0-9-]+\.(?:com|org|net|gov|edu|co\.uk|co\.in|in|io|news|info|biz|tv|me|us|ca|au)(?:\.[a-zA-Z]{2,})?)\b/gi;
     const domainMatch = domainPattern.exec(text);
-    
+
     if (domainMatch) {
-        return domainMatch[1].toLowerCase();
+        // Remove 'www.' if present
+        let domain = domainMatch[1].toLowerCase();
+        if (domain.startsWith('www.')) {
+            domain = domain.substring(4);
+        }
+        return domain;
     }
-    
+
     return null;
 }
 
@@ -38,7 +48,7 @@ function extractDomain(text) {
  */
 function isTrustedDomain(domain) {
     if (!domain) return false;
-    
+
     return trustedSources.domains.some(trusted => {
         return domain === trusted || domain.endsWith('.' + trusted);
     });
@@ -51,12 +61,12 @@ function isTrustedDomain(domain) {
  */
 function isSuspiciousDomain(domain) {
     if (!domain) return false;
-    
+
     // Check exact domain match
     if (suspiciousSources.domains.includes(domain)) {
         return true;
     }
-    
+
     // Check suspicious URL patterns
     return suspiciousSources.suspiciousPatterns.some(pattern => {
         return domain.includes(pattern);
@@ -70,7 +80,7 @@ function isSuspiciousDomain(domain) {
  */
 function analyzeDomain(text) {
     const domain = extractDomain(text);
-    
+
     const result = {
         domain: domain,
         hasDomain: !!domain,
@@ -79,7 +89,7 @@ function analyzeDomain(text) {
         score: 15, // Default score for unknown domains
         reason: null
     };
-    
+
     if (!domain) {
         result.reason = {
             type: 'info',
@@ -88,7 +98,7 @@ function analyzeDomain(text) {
         };
         return result;
     }
-    
+
     if (isTrustedDomain(domain)) {
         result.isTrusted = true;
         result.score = 30;
@@ -112,7 +122,7 @@ function analyzeDomain(text) {
             description: `"${domain}" is not in our database of verified sources. Exercise caution.`
         };
     }
-    
+
     return result;
 }
 

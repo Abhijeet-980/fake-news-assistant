@@ -159,6 +159,56 @@ export default function ResultsPage({ result, inputText, onNewAnalysis }) {
                                 ))}
                             </ul>
                         </div>
+
+                        {/* Fact-Check Section */}
+                        {result.factChecks && (
+                            <div style={{ backgroundColor: '#111827', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px', padding: '24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span className="material-symbols-outlined" style={{ color: '#a855f7', fontSize: '18px' }}>fact_check</span>
+                                    </div>
+                                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'white' }}>Fact-Check Resources</h3>
+                                </div>
+
+                                {/* Found Fact-Checks */}
+                                {result.factChecks.results && result.factChecks.results.length > 0 && (
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#a855f7', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Related Fact-Checks Found</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            {result.factChecks.results.slice(0, 3).map((fc, i) => (
+                                                <a key={i} href={fc.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', gap: '12px', padding: '14px', borderRadius: '12px', backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.05)', textDecoration: 'none' }}>
+                                                    <span className="material-symbols-outlined" style={{ color: fc.ratingColor || '#6b7280', fontSize: '20px', marginTop: '2px' }}>{fc.ratingIcon || 'info'}</span>
+                                                    <div style={{ flex: 1 }}>
+                                                        <p style={{ fontSize: '14px', fontWeight: '600', color: 'white', marginBottom: '4px' }}>{fc.claim?.substring(0, 100) || 'Related claim'}</p>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                            <span style={{ fontSize: '12px', fontWeight: '600', color: fc.ratingColor || '#6b7280', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>{fc.rating || 'View Rating'}</span>
+                                                            <span style={{ fontSize: '12px', color: '#6b7280' }}>by {fc.publisher || 'Fact-checker'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="material-symbols-outlined" style={{ color: '#6b7280', fontSize: '18px' }}>open_in_new</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Search Links */}
+                                {result.factChecks.searchUrls && result.factChecks.searchUrls.length > 0 && (
+                                    <div>
+                                        <p style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Search Fact-Checking Sites</p>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                                            {result.factChecks.searchUrls.slice(0, 6).map((link, i) => (
+                                                <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', backgroundColor: '#0d1117', border: '1px solid rgba(255,255,255,0.05)', textDecoration: 'none', fontSize: '13px', color: '#9ca3af' }}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#a855f7' }}>{link.icon}</span>
+                                                    <span>{link.name}</span>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', marginLeft: 'auto', color: '#4b5563' }}>open_in_new</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
