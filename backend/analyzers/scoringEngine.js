@@ -5,6 +5,7 @@
 
 const { analyzeDomain } = require('./domainAnalyzer');
 const { analyzeLanguage } = require('./languageAnalyzer');
+const { analyzeDateRelevance } = require('./dateAnalyzer');
 
 // Critical thinking prompts based on content type
 const thinkingPrompts = {
@@ -23,8 +24,12 @@ const thinkingPrompts = {
         'Can you verify the statistics or claims independently?',
         'Are there links to primary sources or official statements?'
     ],
-    general: [
+    date: [
         'When was this originally published? Is it still relevant?',
+        'Could this be old news being recirculated as new?',
+        'Has the situation changed since this was first reported?'
+    ],
+    general: [
         'Who benefits if you believe and share this story?',
         'What might be missing from this narrative?',
         'Have you read beyond just the headline?'
@@ -66,9 +71,10 @@ function getStatus(score) {
  * @param {number} score - Credibility score
  * @param {Object} domainAnalysis - Domain analysis result
  * @param {Object} languageAnalysis - Language analysis result
+ * @param {Object} dateAnalysis - Date analysis result
  * @returns {string} - Summary text
  */
-function generateSummary(score, domainAnalysis, languageAnalysis) {
+function generateSummary(score, domainAnalysis, languageAnalysis, dateAnalysis) {
     const status = getStatus(score);
 
     if (status.status === 'reliable') {
@@ -87,6 +93,9 @@ function generateSummary(score, domainAnalysis, languageAnalysis) {
         if (languageAnalysis.evidence.score < 25) {
             issues.push('limited evidence');
         }
+        if (dateAnalysis && dateAnalysis.isOutdated) {
+            issues.push('older publication date');
+        }
         return `This content shows mixed credibility signals including ${issues.join(' and ')}. We recommend verifying with additional sources.`;
     } else {
         return 'This content shows multiple warning signs that suggest low credibility. Please verify thoroughly before trusting or sharing.';
@@ -97,9 +106,10 @@ function generateSummary(score, domainAnalysis, languageAnalysis) {
  * Select relevant thinking prompts
  * @param {Object} domainAnalysis - Domain analysis result
  * @param {Object} languageAnalysis - Language analysis result
+ * @param {Object} dateAnalysis - Date analysis result
  * @returns {string[]} - Selected prompts
  */
-function selectThinkingPrompts(domainAnalysis, languageAnalysis) {
+function selectThinkingPrompts(domainAnalysis, languageAnalysis, dateAnalysis) {
     const prompts = [];
 
     // Add prompts based on issues found
@@ -115,6 +125,11 @@ function selectThinkingPrompts(domainAnalysis, languageAnalysis) {
         prompts.push(thinkingPrompts.evidence[Math.floor(Math.random() * thinkingPrompts.evidence.length)]);
     }
 
+    // Add date-related prompts if content is old
+    if (dateAnalysis && (dateAnalysis.isOutdated || dateAnalysis.isVeryOld)) {
+        prompts.push(thinkingPrompts.date[Math.floor(Math.random() * thinkingPrompts.date.length)]);
+    }
+
     // Always add some general prompts
     prompts.push(thinkingPrompts.general[Math.floor(Math.random() * thinkingPrompts.general.length)]);
 
@@ -125,18 +140,28 @@ function selectThinkingPrompts(domainAnalysis, languageAnalysis) {
 /**
  * Generate recommendation based on score
  * @param {number} score - Credibility score
+ * @param {Object} dateAnalysis - Date analysis result
  * @returns {string} - Recommendation text
  */
-function generateRecommendation(score) {
+function generateRecommendation(score, dateAnalysis) {
     const status = getStatus(score);
 
+    let recommendation = '';
+
     if (status.status === 'reliable') {
-        return 'This content appears reliable, but we always encourage verifying important information with multiple sources.';
+        recommendation = 'This content appears reliable, but we always encourage verifying important information with multiple sources.';
     } else if (status.status === 'needs_caution') {
-        return 'We recommend cross-checking this information with established news organizations before sharing it on social media.';
+        recommendation = 'We recommend cross-checking this information with established news organizations before sharing it on social media.';
     } else {
-        return 'Please verify this information thoroughly with official sources before believing or sharing. Consider checking fact-checking websites.';
+        recommendation = 'Please verify this information thoroughly with official sources before believing or sharing. Consider checking fact-checking websites.';
     }
+
+    // Add date warning if applicable
+    if (dateAnalysis && dateAnalysis.isVeryOld) {
+        recommendation += ' Note: This content appears to be outdated - verify if the information is still current.';
+    }
+
+    return recommendation;
 }
 
 /**
@@ -168,14 +193,21 @@ function analyzeCredibility(text) {
     // Perform language analysis
     const languageAnalysis = analyzeLanguage(text);
 
+    // Perform date analysis
+    const dateAnalysis = analyzeDateRelevance(text);
+
     // Calculate total score (max 100)
     // Domain: 30 points, Emotional: 25 points, Sensationalism: 20 points, Evidence: 25 points
-    const totalScore = Math.min(100, Math.max(0,
+    // Date analysis adds bonus/penalty
+    let totalScore =
         domainAnalysis.score +
         languageAnalysis.emotional.score +
         languageAnalysis.sensationalism.score +
-        languageAnalysis.evidence.score
-    ));
+        languageAnalysis.evidence.score +
+        (dateAnalysis.score || 0); // Add date bonus/penalty
+
+    // Clamp score between 0 and 100
+    totalScore = Math.min(100, Math.max(0, totalScore));
 
     // Collect all reasons
     const reasons = [];
@@ -196,6 +228,11 @@ function analyzeCredibility(text) {
         reasons.push(languageAnalysis.evidence.reason);
     }
 
+    // Add date analysis reason
+    if (dateAnalysis.reason) {
+        reasons.push(dateAnalysis.reason);
+    }
+
     // Sort reasons: negative first, then warning, then positive
     const typeOrder = { negative: 0, warning: 1, info: 2, positive: 3 };
     reasons.sort((a, b) => typeOrder[a.type] - typeOrder[b.type]);
@@ -204,9 +241,9 @@ function analyzeCredibility(text) {
     const statusInfo = getStatus(totalScore);
 
     // Generate outputs
-    const summary = generateSummary(totalScore, domainAnalysis, languageAnalysis);
-    const thinkingPromptsSelected = selectThinkingPrompts(domainAnalysis, languageAnalysis);
-    const recommendation = generateRecommendation(totalScore);
+    const summary = generateSummary(totalScore, domainAnalysis, languageAnalysis, dateAnalysis);
+    const thinkingPromptsSelected = selectThinkingPrompts(domainAnalysis, languageAnalysis, dateAnalysis);
+    const recommendation = generateRecommendation(totalScore, dateAnalysis);
     const searchUrl = generateSearchUrl(text);
 
     return {
@@ -231,6 +268,15 @@ function analyzeCredibility(text) {
                 emotionalWordsFound: languageAnalysis.emotional.foundEmotionalWords,
                 hasQuotes: languageAnalysis.evidence.hasQuotes,
                 hasStatistics: languageAnalysis.evidence.hasStatistics
+            },
+            date: {
+                datesFound: dateAnalysis.datesFound,
+                oldestDate: dateAnalysis.oldestDate ? dateAnalysis.oldestDate.toISOString().split('T')[0] : null,
+                newestDate: dateAnalysis.newestDate ? dateAnalysis.newestDate.toISOString().split('T')[0] : null,
+                ageInDays: dateAnalysis.ageInDays,
+                isOutdated: dateAnalysis.isOutdated,
+                isVeryOld: dateAnalysis.isVeryOld,
+                score: dateAnalysis.score
             }
         }
     };
