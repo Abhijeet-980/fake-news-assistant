@@ -30,6 +30,12 @@ function extractDates(text) {
     // Pattern 6: Year mentions - "2020 report", "2019 study"
     const pattern6 = /\b(20[0-2]\d)\s+(?:report|study|article|news|data|research|survey)\b/gi;
 
+    // Pattern 7: Years in URLs or hyphenated contexts - "yearender-2020", "2020-review", "-2020-"
+    const pattern7 = /[-_/](20[0-2]\d)[-_/]|[-_](20[0-2]\d)$|^(20[0-2]\d)[-_]/g;
+
+    // Pattern 8: Year + keyword patterns - "2020 Year", "Year 2020", "news-2020"
+    const pattern8 = /\b(20[0-2]\d)\s*(?:year|review|edition|roundup|recap)\b|\b(?:year|review|edition|roundup|recap)\s*[-]?\s*(20[0-2]\d)\b/gi;
+
     const monthMap = {
         'jan': 0, 'january': 0,
         'feb': 1, 'february': 1,
@@ -104,6 +110,22 @@ function extractDates(text) {
 
     while ((match = pattern6.exec(text)) !== null) {
         const year = parseInt(match[1]);
+        if (year >= 1900 && year <= 2100) {
+            dates.push(new Date(year, 6, 1)); // Mid-year estimate
+        }
+    }
+
+    // Extract Pattern 7: Years in URLs/hyphenated contexts
+    while ((match = pattern7.exec(text)) !== null) {
+        const year = parseInt(match[1] || match[2] || match[3]);
+        if (year >= 1900 && year <= 2100) {
+            dates.push(new Date(year, 6, 1)); // Mid-year estimate
+        }
+    }
+
+    // Extract Pattern 8: Year + keyword patterns
+    while ((match = pattern8.exec(text)) !== null) {
+        const year = parseInt(match[1] || match[2]);
         if (year >= 1900 && year <= 2100) {
             dates.push(new Date(year, 6, 1)); // Mid-year estimate
         }
