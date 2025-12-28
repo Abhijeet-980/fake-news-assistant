@@ -1,17 +1,29 @@
 /**
  * ResultsPage Component
  * Clean results page with score left, details right
+ * Shows URL fetch status and errors clearly
  */
 import React from 'react';
 import ScoreCircle from '../components/ScoreCircle';
 
 export default function ResultsPage({ result, inputText, onNewAnalysis }) {
-    const { score, statusLabel, statusColor, summary, reasons, thinkingPrompts, recommendation, searchUrl } = result;
+    const { score, statusLabel, statusColor, summary, reasons, thinkingPrompts, recommendation, searchUrl, urlData, fetchedContent } = result;
 
     const getStatusIcon = () => statusColor === 'green' ? 'verified' : statusColor === 'yellow' ? 'warning' : 'error';
     const getReasonIcon = (type) => type === 'positive' ? 'check_circle' : type === 'warning' ? 'sentiment_worried' : type === 'negative' ? 'cancel' : 'schedule';
     const getReasonColor = (type) => type === 'positive' ? '#22c55e' : type === 'warning' ? '#eab308' : type === 'negative' ? '#ef4444' : '#3b82f6';
-    const getTextPreview = () => inputText.length <= 60 ? inputText : inputText.substring(0, 60) + '...';
+
+    const isUrl = urlData && urlData.originalUrl;
+    const fetchFailed = urlData && urlData.fetchError;
+    const fetchSucceeded = fetchedContent && fetchedContent.title;
+
+    const getTextPreview = () => {
+        if (fetchSucceeded && fetchedContent.title) {
+            return fetchedContent.title.length <= 60 ? fetchedContent.title : fetchedContent.title.substring(0, 60) + '...';
+        }
+        return inputText.length <= 60 ? inputText : inputText.substring(0, 60) + '...';
+    };
+
     const statusColors = { green: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', text: '#22c55e' }, yellow: { bg: 'rgba(234,179,8,0.1)', border: 'rgba(234,179,8,0.3)', text: '#eab308' }, red: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', text: '#ef4444' } };
     const sc = statusColors[statusColor] || statusColors.yellow;
 
@@ -39,16 +51,61 @@ export default function ResultsPage({ result, inputText, onNewAnalysis }) {
             <main style={{ flex: 1, padding: '32px 24px', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
                 {/* Header Meta */}
                 <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                        <span className="material-symbols-outlined" style={{ color: '#6b7280', fontSize: '18px' }}>article</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                        <span className="material-symbols-outlined" style={{ color: '#6b7280', fontSize: '18px' }}>{isUrl ? 'link' : 'article'}</span>
                         <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Analysis Result</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#22c55e', textTransform: 'uppercase' }}>New • Just Now</span>
                         </div>
+                        {fetchSucceeded && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: '999px', backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#3b82f6' }}>cloud_done</span>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#3b82f6', textTransform: 'uppercase' }}>{fetchedContent.wordCount} words fetched</span>
+                            </div>
+                        )}
                     </div>
                     <h1 style={{ fontSize: '24px', fontWeight: '700', color: 'white' }}>"{getTextPreview()}"</h1>
+                    {isUrl && (
+                        <a href={urlData.originalUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
+                            {urlData.originalUrl.substring(0, 60)}{urlData.originalUrl.length > 60 ? '...' : ''}
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+                        </a>
+                    )}
                 </div>
+
+                {/* URL Fetch Error Banner */}
+                {fetchFailed && (
+                    <div style={{ marginBottom: '24px', padding: '16px 20px', backgroundColor: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.3)', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: 'rgba(251,146,60,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span className="material-symbols-outlined" style={{ color: '#fb923c', fontSize: '20px' }}>cloud_off</span>
+                        </div>
+                        <div>
+                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#fb923c', marginBottom: '4px' }}>Could Not Fetch Article Content</h4>
+                            <p style={{ fontSize: '13px', color: '#9ca3af', lineHeight: 1.5, marginBottom: '8px' }}>
+                                {urlData.fetchError}
+                            </p>
+                            <p style={{ fontSize: '12px', color: '#6b7280' }}>
+                                <strong>Tip:</strong> Try copying and pasting the article text directly for a more accurate analysis.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Fetched Content Info */}
+                {fetchSucceeded && (
+                    <div style={{ marginBottom: '24px', padding: '16px 20px', backgroundColor: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                            <span className="material-symbols-outlined" style={{ color: '#22c55e', fontSize: '18px' }}>check_circle</span>
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#22c55e' }}>Article Content Retrieved Successfully</span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '12px', color: '#9ca3af' }}>
+                            <span><strong>Words:</strong> {fetchedContent.wordCount}</span>
+                            {fetchedContent.author && <span><strong>Author:</strong> {fetchedContent.author}</span>}
+                            {fetchedContent.publishedDate && <span><strong>Published:</strong> {fetchedContent.publishedDate}</span>}
+                        </div>
+                    </div>
+                )}
 
                 {/* Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '24px' }}>

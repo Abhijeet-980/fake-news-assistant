@@ -100,7 +100,13 @@ app.post('/analyze', async (req, res) => {
 
         // Perform analysis
         console.log(`[${new Date().toISOString()}] Analyzing content (${contentToAnalyze.length} chars)`);
-        const result = analyzeCredibility(contentToAnalyze);
+
+        // Pass publishedDate if we fetched it from URL
+        const analysisOptions = {};
+        if (urlData && urlData.publishedDate) {
+            analysisOptions.publishedDate = urlData.publishedDate;
+        }
+        const result = analyzeCredibility(contentToAnalyze, analysisOptions);
 
         // Add URL metadata to result if applicable
         if (urlData) {

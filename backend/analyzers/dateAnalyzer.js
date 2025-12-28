@@ -162,11 +162,24 @@ function formatAge(days) {
 /**
  * Analyze content for date/age issues
  * @param {string} text - Text to analyze
+ * @param {string} publishedDate - Optional published date from URL extraction
  * @returns {Object} - Date analysis result
  */
-function analyzeDateRelevance(text) {
+function analyzeDateRelevance(text, publishedDate = null) {
     const extractedDates = extractDates(text);
     const now = new Date();
+
+    // If we have a published date from URL extraction, parse and add it
+    if (publishedDate && publishedDate.trim()) {
+        try {
+            const parsed = new Date(publishedDate);
+            if (!isNaN(parsed.getTime())) {
+                extractedDates.push(parsed);
+            }
+        } catch (e) {
+            // Ignore parsing errors
+        }
+    }
 
     const result = {
         datesFound: extractedDates.length,

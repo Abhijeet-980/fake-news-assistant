@@ -184,17 +184,21 @@ function generateSearchUrl(text) {
 /**
  * Perform complete credibility analysis
  * @param {string} text - Text or URL to analyze
+ * @param {Object} options - Optional parameters
+ * @param {string} options.publishedDate - Published date from URL extraction
  * @returns {Object} - Complete analysis result
  */
-function analyzeCredibility(text) {
+function analyzeCredibility(text, options = {}) {
+    const { publishedDate } = options;
+
     // Perform domain analysis
     const domainAnalysis = analyzeDomain(text);
 
     // Perform language analysis
     const languageAnalysis = analyzeLanguage(text);
 
-    // Perform date analysis
-    const dateAnalysis = analyzeDateRelevance(text);
+    // Perform date analysis (pass published date if available)
+    const dateAnalysis = analyzeDateRelevance(text, publishedDate);
 
     // Calculate total score (max 100)
     // Domain: 30 points, Emotional: 25 points, Sensationalism: 20 points, Evidence: 25 points
