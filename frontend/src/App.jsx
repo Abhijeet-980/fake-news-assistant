@@ -11,7 +11,8 @@ import ResultsPage from './pages/ResultsPage';
 import './index.css';
 
 // API configuration
-const API_BASE_URL = 'http://localhost:3001';
+// API URL - use environment variable in production, localhost in development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function App() {
   // Page state: 'landing', 'analyzing', 'results'
