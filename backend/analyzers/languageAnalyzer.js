@@ -1,6 +1,7 @@
 /**
  * Language Analyzer Module
  * Detects emotional tone, sensationalism, and evidence presence
+ * IMPROVED: Stricter evidence validation to catch AI-generated fake content
  */
 
 // Emotional/fear-based words
@@ -46,21 +47,93 @@ const clickbaitPhrases = [
     'urgent warning'
 ];
 
-// Evidence indicators
-const evidenceIndicators = [
-    'according to', 'study shows', 'research indicates', 'scientists say',
-    'experts say', 'officials confirm', 'data shows', 'statistics show',
-    'survey found', 'report states', 'analysis reveals', 'evidence suggests',
-    'source:', 'cited', 'peer-reviewed', 'published in', 'journal',
-    'university', 'institute', 'organization', 'spokesperson',
-    'ministry', 'department', 'official statement', 'press release',
-    'confirmed by', 'verified by', 'fact-check'
+// VAGUE evidence phrases (AI-generated content uses these without specifics)
+const vagueEvidencePhrases = [
+    'according to experts',
+    'experts say',
+    'scientists say',
+    'researchers say',
+    'sources say',
+    'sources confirm',
+    'officials say',
+    'authorities say',
+    'studies show',
+    'research shows',
+    'data shows',
+    'reports indicate',
+    'experts believe',
+    'many believe',
+    'some say',
+    'it is believed',
+    'it is reported',
+    'according to sources',
+    'insiders say',
+    'witnesses claim'
+];
+
+// STRONG evidence indicators (specific, verifiable)
+const strongEvidenceIndicators = [
+    // Named organizations
+    'according to the',  // "according to the WHO", "according to the report"
+    'published in',      // journal/publication names
+    'study by',          // specific study attribution
+    'report by',
+    'statement from',
+    'announced by',
+    'confirmed by',
+
+    // Official sources
+    'ministry of',
+    'department of',
+    'government of',
+    'official website',
+    'press release',
+    'official statement',
+
+    // Academic/scientific
+    'peer-reviewed',
+    'journal',
+    'university',
+    'institute',
+    'research paper',
+    'published study',
+
+    // Specific attribution markers
+    'said in an interview',
+    'told reporters',
+    'in a statement',
+    'spokesperson for',
+    'representative of',
+
+    // Fact-checking
+    'fact-check',
+    'verified by',
+    'debunked',
+    'confirmed'
+];
+
+// AI-generated content red flags
+const aiContentRedFlags = [
+    'in conclusion',
+    'it is important to note',
+    'it is worth noting',
+    'in summary',
+    'to summarize',
+    'in light of',
+    'in the wake of',
+    'moving forward',
+    'at the end of the day',
+    'all things considered',
+    'be that as it may',
+    'having said that',
+    'on the other hand',
+    'furthermore',
+    'nevertheless',
+    'notwithstanding'
 ];
 
 /**
  * Count emotional words in text
- * @param {string} text - Text to analyze
- * @returns {Object} - Emotional words analysis
  */
 function analyzeEmotionalTone(text) {
     const lowerText = text.toLowerCase();
@@ -92,15 +165,14 @@ function analyzeEmotionalTone(text) {
         }
     });
 
-    // Calculate emotional density (percentage of emotional words)
     const emotionalDensity = totalWords > 0 ? (emotionalCount / totalWords) * 100 : 0;
 
     // Score calculation (25 points max)
     let score = 25;
     if (emotionalDensity > 5 || clickbaitCount >= 2) {
-        score = 0; // High emotional content
+        score = 0;
     } else if (emotionalDensity > 2 || clickbaitCount >= 1) {
-        score = 12; // Moderate emotional content
+        score = 12;
     }
 
     let reason = null;
@@ -126,35 +198,26 @@ function analyzeEmotionalTone(text) {
 }
 
 /**
- * Analyze sensationalism indicators (ALL CAPS, exclamation marks)
- * @param {string} text - Text to analyze
- * @returns {Object} - Sensationalism analysis
+ * Analyze sensationalism indicators
  */
 function analyzeSensationalism(text) {
     const words = text.split(/\s+/);
     const totalWords = words.length;
 
-    // Count ALL CAPS words (3+ letters)
     const capsWords = words.filter(word => {
         const cleaned = word.replace(/[^A-Za-z]/g, '');
         return cleaned.length >= 3 && cleaned === cleaned.toUpperCase();
     });
 
-    // Count exclamation marks
     const exclamationCount = (text.match(/!/g) || []).length;
-
-    // Count question marks (often used in clickbait)
     const questionCount = (text.match(/\?/g) || []).length;
-
     const capsPercentage = totalWords > 0 ? (capsWords.length / totalWords) * 100 : 0;
-    const exclamationDensity = totalWords > 0 ? (exclamationCount / totalWords) * 100 : 0;
 
-    // Score calculation (20 points max)
     let score = 20;
     if (capsPercentage > 10 || exclamationCount > 5) {
-        score = 0; // Highly sensational
+        score = 0;
     } else if (capsPercentage > 5 || exclamationCount > 2) {
-        score = 10; // Moderately sensational
+        score = 10;
     }
 
     let reason = null;
@@ -181,20 +244,39 @@ function analyzeSensationalism(text) {
 }
 
 /**
- * Analyze evidence presence in text
- * @param {string} text - Text to analyze
- * @returns {Object} - Evidence analysis
+ * IMPROVED: Analyze evidence presence with stricter validation
+ * Now distinguishes between vague and specific sources
  */
 function analyzeEvidence(text) {
     const lowerText = text.toLowerCase();
 
-    let evidenceCount = 0;
-    const foundEvidence = [];
+    // Count VAGUE evidence (generic phrases without specifics)
+    let vagueEvidenceCount = 0;
+    const foundVagueEvidence = [];
 
-    evidenceIndicators.forEach(indicator => {
+    vagueEvidencePhrases.forEach(phrase => {
+        if (lowerText.includes(phrase)) {
+            vagueEvidenceCount++;
+            foundVagueEvidence.push(phrase);
+        }
+    });
+
+    // Count STRONG evidence (specific, verifiable sources)
+    let strongEvidenceCount = 0;
+    const foundStrongEvidence = [];
+
+    strongEvidenceIndicators.forEach(indicator => {
         if (lowerText.includes(indicator)) {
-            evidenceCount++;
-            foundEvidence.push(indicator);
+            strongEvidenceCount++;
+            foundStrongEvidence.push(indicator);
+        }
+    });
+
+    // Check for AI content red flags
+    let aiRedFlagCount = 0;
+    aiContentRedFlags.forEach(phrase => {
+        if (lowerText.includes(phrase)) {
+            aiRedFlagCount++;
         }
     });
 
@@ -202,43 +284,91 @@ function analyzeEvidence(text) {
     const quoteMatches = text.match(/[""].*?[""]|[''].*?['']/g) || [];
     const hasQuotes = quoteMatches.length > 0;
 
+    // Check for specific named entities (names, organizations)
+    // Pattern: Capital letter followed by lowercase, indicating proper nouns
+    const namedEntities = text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+    const hasNamedSources = namedEntities.length >= 2;
+
     // Check for numbers/statistics
     const hasStatistics = /\d+%|\d+\s*(percent|million|billion|thousand)/i.test(text);
 
-    // Score calculation (25 points max)
+    // Check for URLs (indicates external sources)
+    const hasUrls = /https?:\/\/[^\s]+/i.test(text);
+
+    // STRICTER Score calculation (25 points max)
     let score = 0;
-    if (evidenceCount >= 3 || (evidenceCount >= 2 && (hasQuotes || hasStatistics))) {
-        score = 25; // Strong evidence
-    } else if (evidenceCount >= 1 || hasQuotes || hasStatistics) {
-        score = 12; // Some evidence
+    let evidenceQuality = 'none';
+
+    if (strongEvidenceCount >= 2 && (hasQuotes || hasNamedSources || hasUrls)) {
+        // Strong: Specific sources with quotes/names/URLs
+        score = 25;
+        evidenceQuality = 'strong';
+    } else if (strongEvidenceCount >= 1 && hasStatistics) {
+        // Good: Some specific sources with data
+        score = 18;
+        evidenceQuality = 'good';
+    } else if (vagueEvidenceCount >= 2 && hasQuotes && hasNamedSources) {
+        // Moderate: Vague phrases but with supporting quotes/names
+        score = 12;
+        evidenceQuality = 'moderate';
+    } else if (vagueEvidenceCount >= 1 || hasStatistics) {
+        // Weak: Only vague phrases or just statistics
+        score = 6;
+        evidenceQuality = 'weak';
     }
 
+    // Penalty for AI-generated content patterns
+    if (aiRedFlagCount >= 3) {
+        score = Math.max(0, score - 8);
+    }
+
+    // Generate reason
     let reason = null;
-    if (score === 25) {
+    if (evidenceQuality === 'strong') {
+        reason = {
+            type: 'positive',
+            title: 'Strong Evidence Present',
+            description: 'The content cites specific sources, named experts, or provides verifiable data points.'
+        };
+    } else if (evidenceQuality === 'good') {
         reason = {
             type: 'positive',
             title: 'Evidence and Sources Present',
-            description: 'The content cites sources, experts, or provides verifiable data points.'
+            description: 'The content references specific sources with supporting data.'
         };
-    } else if (score === 12) {
+    } else if (evidenceQuality === 'moderate') {
         reason = {
             type: 'info',
             title: 'Limited Evidence Present',
-            description: 'Some references to sources or data exist, but verification is recommended.'
+            description: 'Some references to sources exist, but verification is recommended.'
+        };
+    } else if (evidenceQuality === 'weak') {
+        reason = {
+            type: 'warning',
+            title: 'Vague or Unverifiable Sources',
+            description: vagueEvidenceCount > 0
+                ? `Uses vague phrases like "${foundVagueEvidence[0]}" without naming specific sources. This is a common pattern in misinformation.`
+                : 'Limited evidence present. Verify claims independently.'
         };
     } else {
         reason = {
-            type: 'warning',
-            title: 'No Clear Evidence or Sources',
-            description: 'The content does not cite specific sources, studies, or official statements.'
+            type: 'negative',
+            title: 'No Verifiable Sources',
+            description: 'The content does not cite any specific, verifiable sources. Treat claims with skepticism.'
         };
     }
 
     return {
-        evidenceCount,
-        foundEvidence: foundEvidence.slice(0, 5),
+        strongEvidenceCount,
+        vagueEvidenceCount,
+        foundStrongEvidence: foundStrongEvidence.slice(0, 5),
+        foundVagueEvidence: foundVagueEvidence.slice(0, 5),
+        aiRedFlagCount,
         hasQuotes,
         hasStatistics,
+        hasNamedSources,
+        hasUrls,
+        evidenceQuality,
         score,
         reason
     };
@@ -246,8 +376,6 @@ function analyzeEvidence(text) {
 
 /**
  * Full language analysis
- * @param {string} text - Text to analyze
- * @returns {Object} - Complete language analysis
  */
 function analyzeLanguage(text) {
     const emotionalAnalysis = analyzeEmotionalTone(text);

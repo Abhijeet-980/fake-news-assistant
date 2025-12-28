@@ -86,15 +86,16 @@ function analyzeDomain(text) {
         hasDomain: !!domain,
         isTrusted: false,
         isSuspicious: false,
-        score: 15, // Default score for unknown domains
+        score: 10, // Default score for unknown domains (lowered for skepticism)
         reason: null
     };
 
     if (!domain) {
+        result.score = 5; // Lower score when no source is provided
         result.reason = {
-            type: 'info',
-            title: 'No Source URL Detected',
-            description: 'No website link was found in the content. Consider checking if this information comes from a reliable source.'
+            type: 'warning',
+            title: 'No Source Provided',
+            description: 'No website or source link was found. Content without a verifiable source should be treated with extra skepticism.'
         };
         return result;
     }
