@@ -232,6 +232,16 @@ async function analyzeCredibility(text, options = {}) {
     // Calculate total score (max 100)
     // Domain: 30 points, Emotional: 25 points, Sensationalism: 20 points, Evidence: 25 points
     // Date analysis adds bonus/penalty, Fact-check adds bonus/penalty, AI adds bonus/penalty
+
+    // IMPORTANT: If domain is trusted, reduce AI negative penalties to prevent false positives
+    let aiScoreAdjustment = aiAnalysis?.scoreAdjustment || 0;
+    if (domainAnalysis.isTrusted && aiScoreAdjustment < 0) {
+        // For trusted domains, AI negative penalties are reduced by 75%
+        // This prevents AI from tanking scores of legitimate news sources
+        aiScoreAdjustment = Math.round(aiScoreAdjustment * 0.25);
+        console.log(`[Scoring] Trusted domain detected - reducing AI penalty from ${aiAnalysis.scoreAdjustment} to ${aiScoreAdjustment}`);
+    }
+
     let totalScore =
         domainAnalysis.score +
         languageAnalysis.emotional.score +
@@ -239,7 +249,7 @@ async function analyzeCredibility(text, options = {}) {
         languageAnalysis.evidence.score +
         (dateAnalysis.score || 0) +
         (factCheckAnalysis?.score || 0) +
-        (aiAnalysis?.scoreAdjustment || 0);
+        aiScoreAdjustment;
 
     // Clamp score between 0 and 100
     totalScore = Math.min(100, Math.max(0, totalScore));
