@@ -1,0 +1,36 @@
+{
+    "domains": [
+        "infowars.com",
+        "naturalnews.com",
+        "beforeitsnews.com",
+        "worldnewsdailyreport.com",
+        "yournewswire.com",
+        "newspunch.com",
+        "theonion.com",
+        "babylonbee.com",
+        "clickhole.com",
+        "empirenews.net",
+        "huzlers.com",
+        "nationalreport.net",
+        "newslo.com",
+        "now8news.com",
+        "stuppid.com",
+        "thelastlineofdefense.org",
+        "worldtruth.tv",
+        "dailybuzzlive.com",
+        "celebtricity.com",
+        "empire-news.net"
+    ],
+    "suspiciousPatterns": [
+        "breaking-news-",
+        "truth-revealed",
+        "media-wont-show",
+        "shocking-truth",
+        "banned-video",
+        "censored-news",
+        "secret-leaked",
+        "exposed-",
+        "-insider",
+        "real-truth"
+    ]
+}
