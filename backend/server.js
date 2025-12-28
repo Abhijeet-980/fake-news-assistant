@@ -8,6 +8,7 @@
 const express = require('express');
 const cors = require('cors');
 const { analyzeCredibility } = require('./analyzers/scoringEngine');
+const { isValidUrl, fetchUrlContent, combineForAnalysis } = require('./analyzers/urlExtractor');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,16 +26,17 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         service: 'Fake News Credibility Assistant API',
-        version: '1.0.0'
+        version: '1.1.0',
+        features: ['text-analysis', 'url-fetching', 'date-detection']
     });
 });
 
 /**
  * Main analysis endpoint
  * POST /analyze
- * Body: { "text": "content to analyze" }
+ * Body: { "text": "content to analyze" } or { "text": "https://example.com/article" }
  */
-app.post('/analyze', (req, res) => {
+app.post('/analyze', async (req, res) => {
     try {
         const { text } = req.body;
 
@@ -46,24 +48,75 @@ app.post('/analyze', (req, res) => {
             });
         }
 
+        const trimmedText = text.trim();
+
         // Check text length
-        if (text.trim().length < 10) {
+        if (trimmedText.length < 10) {
             return res.status(400).json({
                 error: 'Content too short',
                 message: 'Please provide more content for accurate analysis (minimum 10 characters).'
             });
         }
 
-        if (text.length > 50000) {
+        if (trimmedText.length > 50000) {
             return res.status(400).json({
                 error: 'Content too long',
                 message: 'Content exceeds maximum length. Please provide content under 50,000 characters.'
             });
         }
 
+        let contentToAnalyze = trimmedText;
+        let urlData = null;
+
+        // Check if input is a URL
+        if (isValidUrl(trimmedText)) {
+            console.log(`[${new Date().toISOString()}] URL detected, fetching content...`);
+
+            const extracted = await fetchUrlContent(trimmedText);
+
+            if (extracted.success) {
+                console.log(`[${new Date().toISOString()}] Content extracted: ${extracted.wordCount} words from "${extracted.title.substring(0, 50)}..."`);
+
+                // Combine extracted content for analysis
+                contentToAnalyze = combineForAnalysis(extracted);
+
+                urlData = {
+                    originalUrl: trimmedText,
+                    fetchedTitle: extracted.title,
+                    fetchedDescription: extracted.description,
+                    publishedDate: extracted.publishedDate,
+                    author: extracted.author,
+                    wordCount: extracted.wordCount
+                };
+            } else {
+                console.log(`[${new Date().toISOString()}] URL fetch failed: ${extracted.error}`);
+                // Still analyze the URL itself (domain check will work)
+                urlData = {
+                    originalUrl: trimmedText,
+                    fetchError: extracted.error
+                };
+            }
+        }
+
         // Perform analysis
-        console.log(`[${new Date().toISOString()}] Analyzing content (${text.length} chars)`);
-        const result = analyzeCredibility(text);
+        console.log(`[${new Date().toISOString()}] Analyzing content (${contentToAnalyze.length} chars)`);
+        const result = analyzeCredibility(contentToAnalyze);
+
+        // Add URL metadata to result if applicable
+        if (urlData) {
+            result.urlData = urlData;
+
+            // If URL was fetched successfully, update the summary
+            if (urlData.fetchedTitle && !urlData.fetchError) {
+                result.fetchedContent = {
+                    title: urlData.fetchedTitle,
+                    description: urlData.fetchedDescription,
+                    publishedDate: urlData.publishedDate,
+                    author: urlData.author,
+                    wordCount: urlData.wordCount
+                };
+            }
+        }
 
         // Log result summary
         console.log(`[${new Date().toISOString()}] Analysis complete: Score ${result.score} (${result.statusLabel})`);
@@ -104,7 +157,11 @@ app.listen(PORT, () => {
     console.log(`║   Server running on http://localhost:${PORT}              ║`);
     console.log('║   Endpoints:                                           ║');
     console.log('║     GET  /health  - Health check                       ║');
-    console.log('║     POST /analyze - Analyze content credibility        ║');
+    console.log('║     POST /analyze - Analyze content or URL             ║');
+    console.log('║   Features:                                            ║');
+    console.log('║     ✓ URL content fetching                             ║');
+    console.log('║     ✓ Date detection                                   ║');
+    console.log('║     ✓ Domain analysis                                  ║');
     console.log('╚════════════════════════════════════════════════════════╝');
 });
 
