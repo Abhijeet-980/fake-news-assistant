@@ -7,6 +7,7 @@ const { analyzeDomain } = require('./domainAnalyzer');
 const { analyzeLanguage } = require('./languageAnalyzer');
 const { analyzeDateRelevance } = require('./dateAnalyzer');
 const { analyzeFactChecks } = require('./factCheckAnalyzer');
+const { analyzeWithAI, getClassificationColor, getClassificationIcon } = require('./aiAnalyzer');
 
 // Critical thinking prompts based on content type
 const thinkingPrompts = {
@@ -219,22 +220,47 @@ async function analyzeCredibility(text, options = {}) {
         }
     }
 
+    // Perform AI analysis (async) - key feature for detecting satire/fiction
+    let aiAnalysis = null;
+    try {
+        aiAnalysis = await analyzeWithAI(text);
+    } catch (error) {
+        console.error('[AI Analyzer] Analysis failed:', error.message);
+        aiAnalysis = { success: false, enabled: true, error: error.message };
+    }
+
     // Calculate total score (max 100)
     // Domain: 30 points, Emotional: 25 points, Sensationalism: 20 points, Evidence: 25 points
-    // Date analysis adds bonus/penalty, Fact-check adds bonus/penalty
+    // Date analysis adds bonus/penalty, Fact-check adds bonus/penalty, AI adds bonus/penalty
     let totalScore =
         domainAnalysis.score +
         languageAnalysis.emotional.score +
         languageAnalysis.sensationalism.score +
         languageAnalysis.evidence.score +
         (dateAnalysis.score || 0) +
-        (factCheckAnalysis?.score || 0);
+        (factCheckAnalysis?.score || 0) +
+        (aiAnalysis?.scoreAdjustment || 0);
 
     // Clamp score between 0 and 100
     totalScore = Math.min(100, Math.max(0, totalScore));
 
     // Collect all reasons
     const reasons = [];
+
+    // Add AI classification as the TOP reason if analysis succeeded
+    if (aiAnalysis?.success && aiAnalysis.classification) {
+        const isNegative = ['satire', 'fiction', 'misleading', 'propaganda'].includes(aiAnalysis.classification);
+        const isPositive = aiAnalysis.classification === 'real_news';
+
+        reasons.push({
+            type: isNegative ? 'negative' : (isPositive ? 'positive' : 'info'),
+            title: `AI Analysis: ${aiAnalysis.classificationLabel}`,
+            description: aiAnalysis.reasoning,
+            aiClassification: true,
+            color: getClassificationColor(aiAnalysis.classification),
+            icon: getClassificationIcon(aiAnalysis.classification)
+        });
+    }
 
     if (domainAnalysis.reason) {
         reasons.push(domainAnalysis.reason);
@@ -262,9 +288,14 @@ async function analyzeCredibility(text, options = {}) {
         reasons.push(factCheckAnalysis.summary);
     }
 
-    // Sort reasons: negative first, then warning, then positive
+    // Sort reasons: negative first, then warning, then positive (but keep AI at top)
     const typeOrder = { negative: 0, warning: 1, info: 2, positive: 3 };
-    reasons.sort((a, b) => typeOrder[a.type] - typeOrder[b.type]);
+    reasons.sort((a, b) => {
+        // AI classification always stays at top
+        if (a.aiClassification) return -1;
+        if (b.aiClassification) return 1;
+        return typeOrder[a.type] - typeOrder[b.type];
+    });
 
     // Get status
     const statusInfo = getStatus(totalScore);
@@ -283,6 +314,18 @@ async function analyzeCredibility(text, options = {}) {
         thinkingPrompts: thinkingPromptsSelected,
         recommendation,
         searchUrl,
+        aiAnalysis: aiAnalysis?.success ? {
+            classification: aiAnalysis.classification,
+            classificationLabel: aiAnalysis.classificationLabel,
+            confidence: aiAnalysis.confidence,
+            reasoning: aiAnalysis.reasoning,
+            redFlags: aiAnalysis.redFlags,
+            fictionalElements: aiAnalysis.fictionalElements,
+            recommendation: aiAnalysis.recommendation,
+            color: getClassificationColor(aiAnalysis.classification),
+            icon: getClassificationIcon(aiAnalysis.classification),
+            scoreAdjustment: aiAnalysis.scoreAdjustment
+        } : null,
         factChecks: factCheckAnalysis ? {
             hasApiKey: factCheckAnalysis.hasApiKey,
             results: factCheckAnalysis.factChecks,

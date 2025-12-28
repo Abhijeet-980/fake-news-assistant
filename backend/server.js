@@ -5,6 +5,9 @@
  * Uses rule-based analysis for transparent, explainable results
  */
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { analyzeCredibility } = require('./analyzers/scoringEngine');
