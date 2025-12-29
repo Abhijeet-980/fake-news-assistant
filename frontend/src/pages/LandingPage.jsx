@@ -1,13 +1,19 @@
 /**
  * LandingPage Component
- * Clean landing page matching CrediReader reference design
+ * Enhanced landing page with smooth animations while preserving layout and colors
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function LandingPage({ onAnalyze }) {
     const [inputText, setInputText] = useState('');
     const [activeTab, setActiveTab] = useState('text');
+    const [isLoaded, setIsLoaded] = useState(false);
     const maxChars = 5000;
+
+    useEffect(() => {
+        // Trigger entrance animations
+        setIsLoaded(true);
+    }, []);
 
     const handleAnalyze = () => {
         if (inputText.trim().length >= 10) {
@@ -20,8 +26,56 @@ export default function LandingPage({ onAnalyze }) {
             minHeight: '100vh',
             backgroundColor: '#080c14',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            overflow: 'hidden'
         }}>
+            {/* Animated background gradient */}
+            <div style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.08) 0%, transparent 50%)',
+                animation: 'bgFloat 8s ease-in-out infinite',
+                pointerEvents: 'none'
+            }} />
+            <style>{`
+                @keyframes bgFloat {
+                    0%, 100% { opacity: 0.5; transform: translateY(0); }
+                    50% { opacity: 0.8; transform: translateY(-20px); }
+                }
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(30px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes fadeInDown {
+                    from { opacity: 0; transform: translateY(-20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes float {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-8px); }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                }
+                @keyframes shimmer {
+                    0% { background-position: -200% center; }
+                    100% { background-position: 200% center; }
+                }
+                @keyframes glow {
+                    0%, 100% { filter: drop-shadow(0 0 20px rgba(59,130,246,0.3)); }
+                    50% { filter: drop-shadow(0 0 40px rgba(59,130,246,0.5)); }
+                }
+                @keyframes scaleIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                @keyframes slideInLeft {
+                    from { opacity: 0; transform: translateX(-20px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+            `}</style>
+
             {/* Header */}
             <header style={{
                 display: 'flex',
@@ -33,7 +87,8 @@ export default function LandingPage({ onAnalyze }) {
                 backdropFilter: 'blur(10px)',
                 position: 'sticky',
                 top: 0,
-                zIndex: 50
+                zIndex: 50,
+                animation: isLoaded ? 'fadeInDown 0.6s ease-out' : 'none'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
@@ -43,21 +98,57 @@ export default function LandingPage({ onAnalyze }) {
                         backgroundColor: '#3b82f6',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
+                        justifyContent: 'center',
+                        animation: 'glow 3s ease-in-out infinite',
+                        transition: 'transform 0.3s ease'
+                    }}
+                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)'}
+                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1) rotate(0deg)'}
+                    >
                         <span className="material-symbols-outlined" style={{ color: 'white', fontSize: '18px' }}>verified_user</span>
                     </div>
                     <span style={{ color: 'white', fontWeight: '700', fontSize: '16px' }}>CrediReader</span>
                 </div>
 
                 <nav style={{ display: 'flex', gap: '32px' }}>
-                    <a href="#" style={{ color: '#9ca3af', fontSize: '14px', textDecoration: 'none' }}>About</a>
-                    <a href="#" style={{ color: '#9ca3af', fontSize: '14px', textDecoration: 'none' }}>Methodology</a>
-                    <a href="#" style={{ color: '#9ca3af', fontSize: '14px', textDecoration: 'none' }}>Privacy</a>
+                    {['About', 'Methodology', 'Privacy'].map((item, i) => (
+                        <a
+                            key={item}
+                            href="#"
+                            style={{
+                                color: '#9ca3af',
+                                fontSize: '14px',
+                                textDecoration: 'none',
+                                transition: 'all 0.3s ease',
+                                position: 'relative'
+                            }}
+                            onMouseOver={e => {
+                                e.currentTarget.style.color = '#ffffff';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                            }}
+                            onMouseOut={e => {
+                                e.currentTarget.style.color = '#9ca3af';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            {item}
+                        </a>
+                    ))}
                 </nav>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span style={{ color: '#9ca3af', fontSize: '14px', cursor: 'pointer' }}>Sign In</span>
+                    <span
+                        style={{
+                            color: '#9ca3af',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            transition: 'color 0.3s ease'
+                        }}
+                        onMouseOver={e => e.currentTarget.style.color = '#ffffff'}
+                        onMouseOut={e => e.currentTarget.style.color = '#9ca3af'}
+                    >
+                        Sign In
+                    </span>
                     <button style={{
                         backgroundColor: '#1f2937',
                         color: 'white',
@@ -66,8 +157,20 @@ export default function LandingPage({ onAnalyze }) {
                         padding: '8px 16px',
                         borderRadius: '8px',
                         border: '1px solid #374151',
-                        cursor: 'pointer'
-                    }}>Get Extension</button>
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease'
+                    }}
+                        onMouseOver={e => {
+                            e.currentTarget.style.backgroundColor = '#374151';
+                            e.currentTarget.style.borderColor = '#4b5563';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseOut={e => {
+                            e.currentTarget.style.backgroundColor = '#1f2937';
+                            e.currentTarget.style.borderColor = '#374151';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >Get Extension</button>
                 </div>
             </header>
 
@@ -77,9 +180,11 @@ export default function LandingPage({ onAnalyze }) {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                padding: '60px 24px 40px'
+                padding: '60px 24px 40px',
+                position: 'relative',
+                zIndex: 10
             }}>
-                {/* Badge */}
+                {/* Badge - Floating animation */}
                 <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -88,22 +193,31 @@ export default function LandingPage({ onAnalyze }) {
                     borderRadius: '999px',
                     backgroundColor: 'rgba(34,197,94,0.1)',
                     border: '1px solid rgba(34,197,94,0.2)',
-                    marginBottom: '24px'
+                    marginBottom: '24px',
+                    animation: isLoaded ? 'fadeInUp 0.6s ease-out, float 4s ease-in-out 0.6s infinite' : 'none',
+                    boxShadow: '0 4px 20px rgba(34,197,94,0.15)'
                 }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+                    <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: '#22c55e',
+                        animation: 'pulse 2s ease-in-out infinite'
+                    }} />
                     <span style={{ fontSize: '11px', fontWeight: '600', color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         AI-Powered Analysis
                     </span>
                 </div>
 
-                {/* Title */}
+                {/* Title with staggered animation */}
                 <h1 style={{
                     fontSize: '48px',
                     fontWeight: '800',
                     color: 'white',
                     textAlign: 'center',
                     marginBottom: '8px',
-                    lineHeight: 1.1
+                    lineHeight: 1.1,
+                    animation: isLoaded ? 'fadeInUp 0.7s ease-out 0.1s both' : 'none'
                 }}>
                     Fake News
                 </h1>
@@ -112,10 +226,12 @@ export default function LandingPage({ onAnalyze }) {
                     fontWeight: '800',
                     textAlign: 'center',
                     marginBottom: '20px',
-                    background: 'linear-gradient(90deg, #60a5fa, #a78bfa, #5eead4)',
+                    background: 'linear-gradient(90deg, #60a5fa, #a78bfa, #5eead4, #60a5fa)',
+                    backgroundSize: '200% auto',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    lineHeight: 1.1
+                    lineHeight: 1.1,
+                    animation: isLoaded ? 'fadeInUp 0.7s ease-out 0.2s both, shimmer 4s linear infinite' : 'none'
                 }}>
                     CrediReader
                 </h1>
@@ -127,12 +243,13 @@ export default function LandingPage({ onAnalyze }) {
                     textAlign: 'center',
                     maxWidth: '480px',
                     lineHeight: 1.6,
-                    marginBottom: '40px'
+                    marginBottom: '40px',
+                    animation: isLoaded ? 'fadeInUp 0.7s ease-out 0.3s both' : 'none'
                 }}>
                     Helping users think smarter, not censor content. We analyze patterns, sources, and tone to give you context.
                 </p>
 
-                {/* Card */}
+                {/* Card with scale animation */}
                 <div style={{
                     width: '100%',
                     maxWidth: '640px',
@@ -140,10 +257,33 @@ export default function LandingPage({ onAnalyze }) {
                     borderRadius: '16px',
                     border: '1px solid rgba(255,255,255,0.08)',
                     overflow: 'hidden',
-                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
-                }}>
-                    {/* Tabs */}
-                    <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+                    animation: isLoaded ? 'scaleIn 0.7s ease-out 0.4s both' : 'none',
+                    transition: 'box-shadow 0.3s ease, transform 0.3s ease'
+                }}
+                    onMouseOver={e => {
+                        e.currentTarget.style.boxShadow = '0 30px 60px -12px rgba(0,0,0,0.6), 0 0 40px rgba(59,130,246,0.1)';
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                    }}
+                    onMouseOut={e => {
+                        e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0,0,0,0.5)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                >
+                    {/* Tabs with smooth indicator */}
+                    <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'relative' }}>
+                        {/* Animated tab indicator */}
+                        <div style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: activeTab === 'text' ? '0' : '50%',
+                            width: '50%',
+                            height: '2px',
+                            backgroundColor: '#3b82f6',
+                            transition: 'left 0.3s ease',
+                            boxShadow: '0 0 10px rgba(59,130,246,0.5)'
+                        }} />
+
                         <button
                             onClick={() => setActiveTab('text')}
                             style={{
@@ -156,14 +296,21 @@ export default function LandingPage({ onAnalyze }) {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '8px',
-                                position: 'relative'
+                                transition: 'background-color 0.3s ease'
                             }}
                         >
-                            <span className="material-symbols-outlined" style={{ color: activeTab === 'text' ? 'white' : '#6b7280', fontSize: '18px' }}>description</span>
-                            <span style={{ color: activeTab === 'text' ? 'white' : '#6b7280', fontSize: '14px', fontWeight: '500' }}>Paste Text</span>
-                            {activeTab === 'text' && (
-                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px', backgroundColor: '#3b82f6' }} />
-                            )}
+                            <span className="material-symbols-outlined" style={{
+                                color: activeTab === 'text' ? 'white' : '#6b7280',
+                                fontSize: '18px',
+                                transition: 'color 0.3s ease, transform 0.3s ease',
+                                transform: activeTab === 'text' ? 'scale(1.1)' : 'scale(1)'
+                            }}>description</span>
+                            <span style={{
+                                color: activeTab === 'text' ? 'white' : '#6b7280',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'color 0.3s ease'
+                            }}>Paste Text</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('url')}
@@ -177,14 +324,21 @@ export default function LandingPage({ onAnalyze }) {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '8px',
-                                position: 'relative'
+                                transition: 'background-color 0.3s ease'
                             }}
                         >
-                            <span className="material-symbols-outlined" style={{ color: activeTab === 'url' ? 'white' : '#6b7280', fontSize: '18px' }}>link</span>
-                            <span style={{ color: activeTab === 'url' ? 'white' : '#6b7280', fontSize: '14px', fontWeight: '500' }}>Paste URL</span>
-                            {activeTab === 'url' && (
-                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px', backgroundColor: '#3b82f6' }} />
-                            )}
+                            <span className="material-symbols-outlined" style={{
+                                color: activeTab === 'url' ? 'white' : '#6b7280',
+                                fontSize: '18px',
+                                transition: 'color 0.3s ease, transform 0.3s ease',
+                                transform: activeTab === 'url' ? 'scale(1.1)' : 'scale(1)'
+                            }}>link</span>
+                            <span style={{
+                                color: activeTab === 'url' ? 'white' : '#6b7280',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'color 0.3s ease'
+                            }}>Paste URL</span>
                         </button>
                     </div>
 
@@ -212,7 +366,16 @@ export default function LandingPage({ onAnalyze }) {
                                     borderRadius: '12px',
                                     border: '1px solid rgba(255,255,255,0.1)',
                                     resize: 'none',
-                                    outline: 'none'
+                                    outline: 'none',
+                                    transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
+                                }}
+                                onFocus={e => {
+                                    e.target.style.borderColor = 'rgba(59,130,246,0.5)';
+                                    e.target.style.boxShadow = '0 0 20px rgba(59,130,246,0.15)';
+                                }}
+                                onBlur={e => {
+                                    e.target.style.borderColor = 'rgba(255,255,255,0.1)';
+                                    e.target.style.boxShadow = 'none';
                                 }}
                             />
                             <span style={{
@@ -220,8 +383,9 @@ export default function LandingPage({ onAnalyze }) {
                                 bottom: '12px',
                                 right: '12px',
                                 fontSize: '12px',
-                                color: '#4b5563',
-                                fontFamily: 'monospace'
+                                color: inputText.length > maxChars * 0.9 ? '#f59e0b' : '#4b5563',
+                                fontFamily: 'monospace',
+                                transition: 'color 0.3s ease'
                             }}>
                                 {inputText.length} / {maxChars}
                             </span>
@@ -247,23 +411,43 @@ export default function LandingPage({ onAnalyze }) {
                                     cursor: inputText.trim().length >= 10 ? 'pointer' : 'not-allowed',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px'
+                                    gap: '8px',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: inputText.trim().length >= 10 ? '0 4px 15px rgba(59,130,246,0.3)' : 'none'
+                                }}
+                                onMouseOver={e => {
+                                    if (inputText.trim().length >= 10) {
+                                        e.currentTarget.style.backgroundColor = '#2563eb';
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(59,130,246,0.4)';
+                                    }
+                                }}
+                                onMouseOut={e => {
+                                    if (inputText.trim().length >= 10) {
+                                        e.currentTarget.style.backgroundColor = '#3b82f6';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(59,130,246,0.3)';
+                                    }
                                 }}
                             >
-                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>auto_awesome</span>
+                                <span className="material-symbols-outlined" style={{
+                                    fontSize: '18px',
+                                    animation: inputText.trim().length >= 10 ? 'pulse 2s ease-in-out infinite' : 'none'
+                                }}>auto_awesome</span>
                                 Analyze Credibility
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Trust Notice */}
+                {/* Trust Notice with fade in */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '12px',
-                    marginTop: '32px'
+                    marginTop: '32px',
+                    animation: isLoaded ? 'fadeInUp 0.7s ease-out 0.6s both' : 'none'
                 }}>
                     <div style={{
                         width: '32px',
@@ -272,7 +456,8 @@ export default function LandingPage({ onAnalyze }) {
                         backgroundColor: 'rgba(59,130,246,0.1)',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        animation: 'float 3s ease-in-out infinite'
                     }}>
                         <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '18px' }}>verified</span>
                     </div>
@@ -283,8 +468,14 @@ export default function LandingPage({ onAnalyze }) {
                 </div>
             </main>
 
-            {/* Recent Checks */}
-            <section style={{ padding: '0 24px 40px', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
+            {/* Recent Checks with stagger animation */}
+            <section style={{
+                padding: '0 24px 40px',
+                maxWidth: '640px',
+                margin: '0 auto',
+                width: '100%',
+                animation: isLoaded ? 'fadeInUp 0.7s ease-out 0.7s both' : 'none'
+            }}>
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -303,17 +494,42 @@ export default function LandingPage({ onAnalyze }) {
                         { title: 'Global market trends report', status: 'High Credibility • 5m ago', color: '#22c55e' },
                         { title: 'Local election results...', status: 'Needs Context • 12m ago', color: '#eab308' }
                     ].map((item, i) => (
-                        <div key={i} style={{
-                            backgroundColor: 'rgba(17,24,39,0.6)',
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            borderRadius: '10px',
-                            padding: '14px',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '10px',
-                            cursor: 'pointer'
-                        }}>
-                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, marginTop: '4px', flexShrink: 0 }} />
+                        <div
+                            key={i}
+                            style={{
+                                backgroundColor: 'rgba(17,24,39,0.6)',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                borderRadius: '10px',
+                                padding: '14px',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                animation: isLoaded ? `slideInLeft 0.5s ease-out ${0.8 + i * 0.1}s both` : 'none'
+                            }}
+                            onMouseOver={e => {
+                                e.currentTarget.style.backgroundColor = 'rgba(17,24,39,0.9)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+                            }}
+                            onMouseOut={e => {
+                                e.currentTarget.style.backgroundColor = 'rgba(17,24,39,0.6)';
+                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: item.color,
+                                marginTop: '4px',
+                                flexShrink: 0,
+                                boxShadow: `0 0 8px ${item.color}40`
+                            }} />
                             <div>
                                 <p style={{ color: '#d1d5db', fontSize: '13px', fontWeight: '500' }}>{item.title}</p>
                                 <p style={{ color: '#6b7280', fontSize: '11px', marginTop: '4px' }}>{item.status}</p>
