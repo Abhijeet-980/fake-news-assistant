@@ -2,6 +2,11 @@
  * Image Analyzer Module
  * Uses Google Cloud Vision API for reverse image search
  * Detects recycled/fake images in news articles
+ * 
+ * Smart detection:
+ * - Excludes same-domain reuse (normal for news sites)
+ * - Identifies wire service photos (Reuters, AP, AFP, etc.)
+ * - Provides context-aware warnings
  */
 
 const fetch = require('node-fetch');
@@ -9,6 +14,38 @@ const fetch = require('node-fetch');
 // Get API key from environment
 const VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
 const VISION_API_URL = 'https://vision.googleapis.com/v1/images:annotate';
+
+// Wire services and photo agencies - images from these are expected to appear everywhere
+const WIRE_SERVICES = [
+    'reuters.com', 'apnews.com', 'afp.com', 'gettyimages.com', 'shutterstock.com',
+    'alamy.com', 'istockphoto.com', 'pexels.com', 'unsplash.com', 'pixabay.com',
+    'aninews.in', 'pti.in', 'ians.in', 'bccl.in', 'timesofindia', 'indiatimes.com'
+];
+
+/**
+ * Check if a URL belongs to a wire service or stock photo site
+ */
+function isWireServiceUrl(url) {
+    const lowerUrl = url.toLowerCase();
+    return WIRE_SERVICES.some(service => lowerUrl.includes(service));
+}
+
+/**
+ * Extract root domain from URL (e.g., "www.indiatoday.in" -> "indiatoday.in")
+ */
+function getRootDomain(url) {
+    try {
+        const hostname = new URL(url).hostname;
+        const parts = hostname.split('.');
+        // Handle cases like "www.indiatoday.in" or "news.indiatoday.in"
+        if (parts.length >= 2) {
+            return parts.slice(-2).join('.');
+        }
+        return hostname;
+    } catch {
+        return '';
+    }
+}
 
 /**
  * Extract image URLs from article HTML
@@ -75,11 +112,12 @@ function extractImagesFromHtml(html, baseUrl) {
 }
 
 /**
- * Analyze a single image using Vision API
+ * Analyze a single image using Vision API with smart context detection
  * @param {string} imageUrl - URL of the image to analyze
+ * @param {string} articleDomain - Domain of the article being analyzed
  * @returns {Object} Analysis result
  */
-async function analyzeImage(imageUrl) {
+async function analyzeImage(imageUrl, articleDomain) {
     if (!VISION_API_KEY) {
         console.log('[ImageAnalyzer] No Vision API key configured');
         return null;
@@ -94,7 +132,7 @@ async function analyzeImage(imageUrl) {
                     }
                 },
                 features: [
-                    { type: 'WEB_DETECTION', maxResults: 10 }
+                    { type: 'WEB_DETECTION', maxResults: 15 }
                 ]
             }]
         };
@@ -124,32 +162,75 @@ async function analyzeImage(imageUrl) {
             };
         }
 
-        // Process results
+        // Process results with smart filtering
         const result = {
             imageUrl,
             status: 'analyzed',
             pagesWithMatchingImages: [],
+            externalPages: [], // Pages from different domains
+            sameDomainPages: [], // Pages from same publisher
+            wireServiceSource: null,
             fullMatchingImages: [],
-            partialMatchingImages: [],
             visuallySimilarImages: [],
             bestGuessLabels: [],
             isRecycled: false,
-            recycleWarning: null
+            isSuspicious: false,
+            recycleWarning: null,
+            context: 'original' // 'original', 'wire_photo', 'stock_photo', 'recycled', 'suspicious'
         };
 
-        // Pages with matching images (most important for detecting recycled images)
+        // Pages with matching images
         if (webDetection.pagesWithMatchingImages) {
-            result.pagesWithMatchingImages = webDetection.pagesWithMatchingImages
-                .slice(0, 5)
-                .map(page => ({
-                    url: page.url,
-                    title: page.pageTitle || extractDomain(page.url)
-                }));
+            const allPages = webDetection.pagesWithMatchingImages.slice(0, 10);
 
-            // If image appears on multiple pages, it might be recycled
-            if (result.pagesWithMatchingImages.length >= 3) {
+            for (const page of allPages) {
+                const pageInfo = {
+                    url: page.url,
+                    title: page.pageTitle || extractDomain(page.url),
+                    domain: getRootDomain(page.url)
+                };
+
+                result.pagesWithMatchingImages.push(pageInfo);
+
+                // Categorize: same domain vs external
+                if (pageInfo.domain === articleDomain ||
+                    pageInfo.domain.includes(articleDomain) ||
+                    articleDomain.includes(pageInfo.domain)) {
+                    result.sameDomainPages.push(pageInfo);
+                } else {
+                    result.externalPages.push(pageInfo);
+
+                    // Check if it's from a wire service
+                    if (isWireServiceUrl(page.url)) {
+                        result.wireServiceSource = pageInfo;
+                    }
+                }
+            }
+
+            // Smart recycled detection
+            const externalCount = result.externalPages.length;
+            const hasWireSource = result.wireServiceSource !== null;
+
+            if (hasWireSource) {
+                // Wire service photo - this is normal
+                result.context = 'wire_photo';
+                result.isRecycled = false;
+                result.recycleWarning = `📸 Wire/Agency photo (found on ${externalCount} sites) - This is normal for news photos`;
+            } else if (externalCount >= 5) {
+                // Many external sources without wire service attribution - suspicious
+                result.context = 'suspicious';
                 result.isRecycled = true;
-                result.recycleWarning = `This image appears on ${result.pagesWithMatchingImages.length}+ other websites`;
+                result.isSuspicious = true;
+                result.recycleWarning = `⚠️ This image appears on ${externalCount}+ unrelated websites without clear original source`;
+            } else if (externalCount >= 3) {
+                // Some external sources - might be recycled
+                result.context = 'recycled';
+                result.isRecycled = true;
+                result.recycleWarning = `This image appears on ${externalCount} other websites`;
+            } else if (result.sameDomainPages.length > 0 && externalCount < 2) {
+                // Mostly same-domain - likely original or reused by same publisher
+                result.context = 'original';
+                result.isRecycled = false;
             }
         }
 
@@ -197,7 +278,7 @@ function extractDomain(url) {
 }
 
 /**
- * Analyze all images in an article
+ * Analyze all images in an article with smart context detection
  * @param {string} html - Article HTML content
  * @param {string} baseUrl - Article URL
  * @returns {Object} Image analysis results
@@ -213,6 +294,9 @@ async function analyzeArticleImages(html, baseUrl) {
         };
     }
 
+    const articleDomain = getRootDomain(baseUrl);
+    console.log(`[ImageAnalyzer] Article domain: ${articleDomain}`);
+
     // Extract images from HTML
     const imageUrls = extractImagesFromHtml(html, baseUrl);
     console.log(`[ImageAnalyzer] Found ${imageUrls.length} images to analyze`);
@@ -225,6 +309,8 @@ async function analyzeArticleImages(html, baseUrl) {
                 total: 0,
                 analyzed: 0,
                 recycledCount: 0,
+                suspiciousCount: 0,
+                wirePhotoCount: 0,
                 message: 'No images found in article'
             }
         };
@@ -234,7 +320,7 @@ async function analyzeArticleImages(html, baseUrl) {
     const results = [];
     for (const imageUrl of imageUrls) {
         console.log(`[ImageAnalyzer] Analyzing: ${imageUrl.substring(0, 80)}...`);
-        const result = await analyzeImage(imageUrl);
+        const result = await analyzeImage(imageUrl, articleDomain);
         if (result) {
             results.push(result);
         }
@@ -242,8 +328,22 @@ async function analyzeArticleImages(html, baseUrl) {
         await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    // Count recycled images
+    // Count different types
+    const suspiciousCount = results.filter(r => r.isSuspicious).length;
     const recycledCount = results.filter(r => r.isRecycled).length;
+    const wirePhotoCount = results.filter(r => r.context === 'wire_photo').length;
+
+    // Generate smart summary message
+    let message = '';
+    if (suspiciousCount > 0) {
+        message = `⚠️ ${suspiciousCount} image(s) may be recycled from unrelated sources - verify before sharing`;
+    } else if (recycledCount > 0) {
+        message = `ℹ️ ${recycledCount} image(s) found on other sites, but this may be normal`;
+    } else if (wirePhotoCount > 0) {
+        message = `📸 ${wirePhotoCount} wire/agency photo(s) detected - this is normal for news`;
+    } else {
+        message = '✅ Images appear to be original or properly sourced';
+    }
 
     return {
         enabled: true,
@@ -252,9 +352,9 @@ async function analyzeArticleImages(html, baseUrl) {
             total: imageUrls.length,
             analyzed: results.length,
             recycledCount,
-            message: recycledCount > 0
-                ? `⚠️ ${recycledCount} image(s) appear to be recycled from other sources`
-                : '✅ No recycled images detected'
+            suspiciousCount,
+            wirePhotoCount,
+            message
         }
     };
 }
@@ -262,5 +362,7 @@ async function analyzeArticleImages(html, baseUrl) {
 module.exports = {
     extractImagesFromHtml,
     analyzeImage,
-    analyzeArticleImages
+    analyzeArticleImages,
+    isWireServiceUrl,
+    getRootDomain
 };

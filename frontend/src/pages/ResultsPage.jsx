@@ -424,19 +424,29 @@ function ImageVerification({ imageAnalysis }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
                 <div style={{
                     width: '36px', height: '36px', borderRadius: '50%',
-                    backgroundColor: summary.recycledCount > 0 ? 'rgba(251,146,60,0.1)' : 'rgba(34,197,94,0.1)',
+                    backgroundColor: summary.suspiciousCount > 0 ? 'rgba(239,68,68,0.1)' :
+                        summary.recycledCount > 0 ? 'rgba(251,146,60,0.1)' :
+                            summary.wirePhotoCount > 0 ? 'rgba(59,130,246,0.1)' : 'rgba(34,197,94,0.1)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                     <span className="material-symbols-outlined" style={{
-                        color: summary.recycledCount > 0 ? '#fb923c' : '#22c55e',
+                        color: summary.suspiciousCount > 0 ? '#ef4444' :
+                            summary.recycledCount > 0 ? '#fb923c' :
+                                summary.wirePhotoCount > 0 ? '#3b82f6' : '#22c55e',
                         fontSize: '18px'
                     }}>
-                        {summary.recycledCount > 0 ? 'image_search' : 'verified'}
+                        {summary.suspiciousCount > 0 ? 'warning' :
+                            summary.recycledCount > 0 ? 'image_search' :
+                                summary.wirePhotoCount > 0 ? 'photo_camera' : 'verified'}
                     </span>
                 </div>
                 <div>
                     <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'white' }}>Image Verification</h3>
-                    <p style={{ fontSize: '12px', color: summary.recycledCount > 0 ? '#fb923c' : '#22c55e' }}>
+                    <p style={{
+                        fontSize: '12px', color: summary.suspiciousCount > 0 ? '#ef4444' :
+                            summary.recycledCount > 0 ? '#fb923c' :
+                                summary.wirePhotoCount > 0 ? '#3b82f6' : '#22c55e'
+                    }}>
                         {summary.message}
                     </p>
                 </div>
@@ -467,17 +477,37 @@ function ImageVerification({ imageAnalysis }) {
                             />
 
                             <div style={{ flex: 1 }}>
-                                {/* Status Badge */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                    {img.isRecycled ? (
+                                {/* Status Badge - Context aware */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                    {img.context === 'suspicious' ? (
+                                        <span style={{
+                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                            backgroundColor: 'rgba(239,68,68,0.2)',
+                                            padding: '4px 10px', borderRadius: '6px',
+                                            fontSize: '11px', fontWeight: '600', color: '#ef4444'
+                                        }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>error</span>
+                                            Suspicious
+                                        </span>
+                                    ) : img.context === 'wire_photo' ? (
+                                        <span style={{
+                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                            backgroundColor: 'rgba(59,130,246,0.2)',
+                                            padding: '4px 10px', borderRadius: '6px',
+                                            fontSize: '11px', fontWeight: '600', color: '#3b82f6'
+                                        }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>photo_camera</span>
+                                            Wire/Agency Photo
+                                        </span>
+                                    ) : img.context === 'recycled' ? (
                                         <span style={{
                                             display: 'flex', alignItems: 'center', gap: '4px',
                                             backgroundColor: 'rgba(251,146,60,0.2)',
                                             padding: '4px 10px', borderRadius: '6px',
                                             fontSize: '11px', fontWeight: '600', color: '#fb923c'
                                         }}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>warning</span>
-                                            Recycled Image
+                                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>refresh</span>
+                                            Reused Image
                                         </span>
                                     ) : (
                                         <span style={{
@@ -487,7 +517,7 @@ function ImageVerification({ imageAnalysis }) {
                                             fontSize: '11px', fontWeight: '600', color: '#22c55e'
                                         }}>
                                             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check_circle</span>
-                                            No Issues
+                                            Original
                                         </span>
                                     )}
 
