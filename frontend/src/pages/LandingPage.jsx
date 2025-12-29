@@ -128,83 +128,196 @@ export default function LandingPage({ onAnalyze, onNavigate }) {
                 }
             `}</style>
 
-            {/* Header */}
+            {/* Header - Enhanced Navbar */}
             <header style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: isMobile ? '12px 16px' : '16px 48px',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                backgroundColor: 'rgba(8,12,20,0.9)',
-                backdropFilter: 'blur(10px)',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                backgroundColor: 'rgba(8,12,20,0.85)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
                 position: 'sticky',
                 top: 0,
                 zIndex: 50,
-                animation: isLoaded ? 'fadeInDown 0.6s ease-out' : 'none'
+                animation: isLoaded ? 'fadeInDown 0.6s ease-out' : 'none',
+                boxShadow: '0 4px 30px rgba(0,0,0,0.3)'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* Logo Section */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    cursor: 'pointer'
+                }}
+                    onClick={() => onNavigate && onNavigate('home')}
+                >
                     <div style={{
-                        width: isMobile ? '32px' : '36px',
-                        height: isMobile ? '32px' : '36px',
-                        borderRadius: '10px',
-                        backgroundColor: '#3b82f6',
+                        width: isMobile ? '36px' : '40px',
+                        height: isMobile ? '36px' : '40px',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        animation: 'glow 3s ease-in-out infinite',
-                        transition: 'transform 0.3s ease'
+                        boxShadow: '0 4px 20px rgba(59,130,246,0.4), inset 0 1px 1px rgba(255,255,255,0.2)',
+                        transition: 'all 0.3s ease'
                     }}
-                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)'}
-                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1) rotate(0deg)'}
+                        onMouseOver={e => {
+                            e.currentTarget.style.transform = 'scale(1.05) rotate(5deg)';
+                            e.currentTarget.style.boxShadow = '0 6px 25px rgba(59,130,246,0.5), inset 0 1px 1px rgba(255,255,255,0.2)';
+                        }}
+                        onMouseOut={e => {
+                            e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+                            e.currentTarget.style.boxShadow = '0 4px 20px rgba(59,130,246,0.4), inset 0 1px 1px rgba(255,255,255,0.2)';
+                        }}
                     >
-                        <span className="material-symbols-outlined" style={{ color: 'white', fontSize: isMobile ? '18px' : '20px' }}>verified_user</span>
+                        <span className="material-symbols-outlined" style={{
+                            color: 'white',
+                            fontSize: isMobile ? '20px' : '22px',
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                        }}>verified_user</span>
                     </div>
-                    <span style={{ color: 'white', fontWeight: '700', fontSize: isMobile ? '16px' : '18px' }}>CrediReader</span>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{
+                            color: 'white',
+                            fontWeight: '700',
+                            fontSize: isMobile ? '17px' : '19px',
+                            letterSpacing: '-0.3px',
+                            background: 'linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>CrediReader</span>
+                        {!isMobile && (
+                            <span style={{
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                letterSpacing: '0.5px',
+                                marginTop: '-2px'
+                            }}>FAKE NEWS DETECTOR</span>
+                        )}
+                    </div>
                 </div>
 
-                {/* Navigation - Hidden on mobile, shown on tablet/desktop */}
+                {/* Navigation - Desktop/Tablet */}
                 {!isMobile && (
-                    <nav style={{ display: 'flex', gap: isTablet ? '24px' : '40px' }}>
-                        {[{ label: 'About', page: 'about' }, { label: 'Methodology', page: 'methodology' }, { label: 'Privacy', page: 'privacy' }].map((item) => (
-                            <span
+                    <nav style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        padding: '6px 8px',
+                        borderRadius: '14px',
+                        border: '1px solid rgba(255,255,255,0.06)'
+                    }}>
+                        {[
+                            { label: 'About', page: 'about', icon: 'info' },
+                            { label: 'Methodology', page: 'methodology', icon: 'science' },
+                            { label: 'Privacy', page: 'privacy', icon: 'shield' }
+                        ].map((item) => (
+                            <button
                                 key={item.label}
                                 onClick={() => onNavigate && onNavigate(item.page)}
                                 style={{
-                                    color: '#9ca3af',
-                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: isTablet ? '8px 14px' : '10px 18px',
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    borderRadius: '10px',
                                     cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    position: 'relative'
+                                    transition: 'all 0.2s ease'
                                 }}
                                 onMouseOver={e => {
-                                    e.currentTarget.style.color = '#ffffff';
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.15)';
+                                    e.currentTarget.querySelector('span:first-child').style.color = '#60a5fa';
+                                    e.currentTarget.querySelector('span:last-child').style.color = '#ffffff';
                                 }}
                                 onMouseOut={e => {
-                                    e.currentTarget.style.color = '#9ca3af';
-                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                    e.currentTarget.querySelector('span:first-child').style.color = '#6b7280';
+                                    e.currentTarget.querySelector('span:last-child').style.color = '#9ca3af';
                                 }}
                             >
-                                {item.label}
-                            </span>
+                                <span className="material-symbols-outlined" style={{
+                                    fontSize: '18px',
+                                    color: '#6b7280',
+                                    transition: 'color 0.2s ease'
+                                }}>{item.icon}</span>
+                                <span style={{
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    color: '#9ca3af',
+                                    transition: 'color 0.2s ease'
+                                }}>{item.label}</span>
+                            </button>
                         ))}
                     </nav>
+                )}
+
+                {/* CTA Button - Desktop only */}
+                {!isMobile && !isTablet && (
+                    <button
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '10px 20px',
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 15px rgba(59,130,246,0.3)',
+                            transition: 'all 0.3s ease'
+                        }}
+                        onMouseOver={e => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(59,130,246,0.4)';
+                        }}
+                        onMouseOut={e => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 15px rgba(59,130,246,0.3)';
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'white' }}>rocket_launch</span>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'white' }}>Get Started</span>
+                    </button>
                 )}
 
                 {/* Mobile menu button */}
                 {isMobile && (
                     <button style={{
-                        background: 'transparent',
-                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '40px',
+                        height: '40px',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '10px',
                         color: '#9ca3af',
                         cursor: 'pointer',
-                        padding: '8px'
-                    }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>menu</span>
+                        transition: 'all 0.2s ease'
+                    }}
+                        onMouseOver={e => {
+                            e.currentTarget.style.background = 'rgba(59,130,246,0.15)';
+                            e.currentTarget.style.borderColor = 'rgba(59,130,246,0.3)';
+                            e.currentTarget.style.color = '#60a5fa';
+                        }}
+                        onMouseOut={e => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                            e.currentTarget.style.color = '#9ca3af';
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>menu</span>
                     </button>
                 )}
 
-                {!isMobile && <div style={{ width: '120px' }} />}
+                {/* Spacer for tablet */}
+                {isTablet && <div style={{ width: '40px' }} />}
             </header>
 
             {/* Main Content */}
