@@ -8,6 +8,9 @@ import React, { useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import AnalyzingPage from './pages/AnalyzingPage';
 import ResultsPage from './pages/ResultsPage';
+import AboutPage from './pages/AboutPage';
+import MethodologyPage from './pages/MethodologyPage';
+import PrivacyPage from './pages/PrivacyPage';
 import { ResultsSkeleton } from './components/SkeletonLoader';
 import './index.css';
 
@@ -16,7 +19,7 @@ import './index.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function App() {
-  // Page state: 'landing', 'analyzing', 'results'
+  // Page state: 'landing', 'analyzing', 'results', 'about', 'methodology', 'privacy'
   const [currentPage, setCurrentPage] = useState('landing');
   const [inputText, setInputText] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -80,6 +83,13 @@ function App() {
     setAnalysisResult(null);
   };
 
+  /**
+   * Navigate to a specific page
+   */
+  const navigateTo = (page) => {
+    setCurrentPage(page);
+  };
+
   // Render current page
   switch (currentPage) {
     case 'analyzing':
@@ -97,10 +107,20 @@ function App() {
         />
       );
 
+    case 'about':
+      return <AboutPage onBack={() => navigateTo('landing')} />;
+
+    case 'methodology':
+      return <MethodologyPage onBack={() => navigateTo('landing')} />;
+
+    case 'privacy':
+      return <PrivacyPage onBack={() => navigateTo('landing')} />;
+
     case 'landing':
     default:
-      return <LandingPage onAnalyze={handleAnalyze} />;
+      return <LandingPage onAnalyze={handleAnalyze} onNavigate={navigateTo} />;
   }
 }
 
 export default App;
+

@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect } from 'react';
 
-export default function LandingPage({ onAnalyze }) {
+export default function LandingPage({ onAnalyze, onNavigate }) {
     const [inputText, setInputText] = useState('');
     const [activeTab, setActiveTab] = useState('text');
     const [isLoaded, setIsLoaded] = useState(false);
@@ -111,14 +111,14 @@ export default function LandingPage({ onAnalyze }) {
                 </div>
 
                 <nav style={{ display: 'flex', gap: '32px' }}>
-                    {['About', 'Methodology', 'Privacy'].map((item, i) => (
-                        <a
-                            key={item}
-                            href="#"
+                    {[{ label: 'About', page: 'about' }, { label: 'Methodology', page: 'methodology' }, { label: 'Privacy', page: 'privacy' }].map((item, i) => (
+                        <span
+                            key={item.label}
+                            onClick={() => onNavigate && onNavigate(item.page)}
                             style={{
                                 color: '#9ca3af',
                                 fontSize: '14px',
-                                textDecoration: 'none',
+                                cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 position: 'relative'
                             }}
@@ -131,8 +131,8 @@ export default function LandingPage({ onAnalyze }) {
                                 e.currentTarget.style.transform = 'translateY(0)';
                             }}
                         >
-                            {item}
-                        </a>
+                            {item.label}
+                        </span>
                     ))}
                 </nav>
 
