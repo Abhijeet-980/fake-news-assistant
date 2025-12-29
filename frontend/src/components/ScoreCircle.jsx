@@ -8,8 +8,8 @@ export default function ScoreCircle({ score, statusColor }) {
     const [animatedScore, setAnimatedScore] = useState(0);
 
     // Circle properties
-    const size = 250;
-    const strokeWidth = 12;
+    const size = 220;
+    const strokeWidth = 10;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (animatedScore / 100) * circumference;
@@ -51,53 +51,63 @@ export default function ScoreCircle({ score, statusColor }) {
     const color = getColor();
 
     return (
-        <div className="relative">
-            {/* Glow effect */}
-            <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full blur-3xl pointer-events-none opacity-30"
-                style={{ backgroundColor: color }}
-            />
-
+        <div style={{ position: 'relative', width: size, height: size }}>
             <svg
-                className="transform"
-                height={size}
                 width={size}
+                height={size}
+                style={{ transform: 'rotate(-90deg)' }}
             >
                 {/* Background circle */}
                 <circle
-                    className="text-white/5"
                     cx={size / 2}
                     cy={size / 2}
-                    fill="transparent"
                     r={radius}
-                    stroke="currentColor"
+                    fill="transparent"
+                    stroke="rgba(255,255,255,0.08)"
                     strokeWidth={strokeWidth}
                 />
 
                 {/* Progress circle */}
                 <circle
-                    className="progress-ring__circle drop-shadow-lg"
                     cx={size / 2}
                     cy={size / 2}
-                    fill="transparent"
                     r={radius}
+                    fill="transparent"
                     stroke={color}
                     strokeWidth={strokeWidth}
                     strokeDasharray={circumference}
                     strokeDashoffset={offset}
                     strokeLinecap="round"
                     style={{
-                        filter: `drop-shadow(0 0 10px ${color}80)`
+                        transition: 'stroke-dashoffset 0.1s ease-out'
                     }}
                 />
             </svg>
 
             {/* Score text */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-6xl font-black text-white tracking-tighter">
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                <span style={{
+                    fontSize: '56px',
+                    fontWeight: '800',
+                    color: 'white',
+                    letterSpacing: '-2px',
+                    lineHeight: 1
+                }}>
                     {animatedScore}
                 </span>
-                <span className="text-sm font-medium text-gray-400 uppercase tracking-widest mt-1">
+                <span style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginTop: '4px'
+                }}>
                     /100
                 </span>
             </div>
