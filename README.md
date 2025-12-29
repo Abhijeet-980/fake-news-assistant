@@ -1,12 +1,8 @@
 # 🛡️ CrediReader - AI-Powered Fake News Detection
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live-green)](https://your-app-url.vercel.app)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Live Demo](https://fake-news-assistant.vercel.app/)
 
 **CrediReader** is an intelligent fake news detection tool that combines AI classification, fact-checking databases, and reverse image search to help users verify news credibility.
-
-![CrediReader Preview](https://via.placeholder.com/800x400?text=CrediReader+Preview)
-
 ---
 
 ## ✨ Features
