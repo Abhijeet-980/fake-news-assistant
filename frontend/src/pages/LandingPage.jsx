@@ -136,42 +136,8 @@ export default function LandingPage({ onAnalyze, onNavigate }) {
                     ))}
                 </nav>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <span
-                        style={{
-                            color: '#9ca3af',
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            transition: 'color 0.3s ease'
-                        }}
-                        onMouseOver={e => e.currentTarget.style.color = '#ffffff'}
-                        onMouseOut={e => e.currentTarget.style.color = '#9ca3af'}
-                    >
-                        Sign In
-                    </span>
-                    <button style={{
-                        backgroundColor: '#1f2937',
-                        color: 'white',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #374151',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease'
-                    }}
-                        onMouseOver={e => {
-                            e.currentTarget.style.backgroundColor = '#374151';
-                            e.currentTarget.style.borderColor = '#4b5563';
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseOut={e => {
-                            e.currentTarget.style.backgroundColor = '#1f2937';
-                            e.currentTarget.style.borderColor = '#374151';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                    >Get Extension</button>
-                </div>
+                {/* Spacer for header alignment */}
+                <div style={{ display: 'flex', alignItems: 'center' }} />
             </header>
 
             {/* Main Content */}

@@ -39,16 +39,7 @@ export default function Header({ onNewAnalysis, showNewButton = false }) {
                                 <span className="hidden sm:inline">New Analysis</span>
                             </button>
                         </>
-                    ) : (
-                        <>
-                            <button className="hidden sm:block text-gray-400 hover:text-white text-sm font-medium transition-colors">
-                                Sign In
-                            </button>
-                            <button className="bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors border border-gray-700">
-                                Get Extension
-                            </button>
-                        </>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </header>
