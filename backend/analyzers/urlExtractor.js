@@ -262,6 +262,7 @@ async function fetchUrlContent(url) {
                 return {
                     success: true,
                     ...extracted,
+                    rawHtml: html, // Include raw HTML for image extraction
                     fetchMethod: config.name,
                     attemptsCount: i + 1
                 };

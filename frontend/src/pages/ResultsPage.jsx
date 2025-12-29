@@ -228,6 +228,11 @@ export default function ResultsPage({ result, inputText, onNewAnalysis }) {
                     </a>
                 </div>
 
+                {/* Image Verification */}
+                {result.imageAnalysis && result.imageAnalysis.enabled && (
+                    <ImageVerification imageAnalysis={result.imageAnalysis} />
+                )}
+
                 {/* Share Card */}
                 <ShareCard score={score} statusLabel={statusLabel} statusColor={statusColor} inputText={inputText} fetchedContent={fetchedContent} urlData={urlData} />
             </main>
@@ -395,6 +400,178 @@ function ShareCard({ score, statusLabel, statusColor, inputText, fetchedContent,
                     </span>
                     {copied ? 'Copied!' : 'Copy Link'}
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// ImageVerification Component
+function ImageVerification({ imageAnalysis }) {
+    const { images, summary } = imageAnalysis;
+
+    if (!images || images.length === 0) {
+        return null;
+    }
+
+    return (
+        <div style={{
+            marginTop: '24px',
+            backgroundColor: '#111827',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '20px',
+            padding: '24px'
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <div style={{
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    backgroundColor: summary.recycledCount > 0 ? 'rgba(251,146,60,0.1)' : 'rgba(34,197,94,0.1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <span className="material-symbols-outlined" style={{
+                        color: summary.recycledCount > 0 ? '#fb923c' : '#22c55e',
+                        fontSize: '18px'
+                    }}>
+                        {summary.recycledCount > 0 ? 'image_search' : 'verified'}
+                    </span>
+                </div>
+                <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'white' }}>Image Verification</h3>
+                    <p style={{ fontSize: '12px', color: summary.recycledCount > 0 ? '#fb923c' : '#22c55e' }}>
+                        {summary.message}
+                    </p>
+                </div>
+            </div>
+
+            {/* Image List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {images.map((img, i) => (
+                    <div key={i} style={{
+                        backgroundColor: '#0d1117',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        border: img.isRecycled ? '1px solid rgba(251,146,60,0.3)' : '1px solid rgba(255,255,255,0.05)'
+                    }}>
+                        <div style={{ display: 'flex', gap: '14px' }}>
+                            {/* Thumbnail */}
+                            <img
+                                src={img.imageUrl}
+                                alt="Article image"
+                                style={{
+                                    width: '80px', height: '60px',
+                                    objectFit: 'cover', borderRadius: '8px',
+                                    backgroundColor: '#1f2937'
+                                }}
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+
+                            <div style={{ flex: 1 }}>
+                                {/* Status Badge */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                    {img.isRecycled ? (
+                                        <span style={{
+                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                            backgroundColor: 'rgba(251,146,60,0.2)',
+                                            padding: '4px 10px', borderRadius: '6px',
+                                            fontSize: '11px', fontWeight: '600', color: '#fb923c'
+                                        }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>warning</span>
+                                            Recycled Image
+                                        </span>
+                                    ) : (
+                                        <span style={{
+                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                            backgroundColor: 'rgba(34,197,94,0.2)',
+                                            padding: '4px 10px', borderRadius: '6px',
+                                            fontSize: '11px', fontWeight: '600', color: '#22c55e'
+                                        }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check_circle</span>
+                                            No Issues
+                                        </span>
+                                    )}
+
+                                    {img.bestGuessLabels && img.bestGuessLabels.length > 0 && (
+                                        <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                                            {img.bestGuessLabels[0]}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Warning message */}
+                                {img.recycleWarning && (
+                                    <p style={{ fontSize: '13px', color: '#fb923c', marginBottom: '8px' }}>
+                                        {img.recycleWarning}
+                                    </p>
+                                )}
+
+                                {/* Pages where image appeared */}
+                                {img.pagesWithMatchingImages && img.pagesWithMatchingImages.length > 0 && (
+                                    <div>
+                                        <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '6px' }}>Also found on:</p>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                            {img.pagesWithMatchingImages.slice(0, 3).map((page, j) => (
+                                                <a
+                                                    key={j}
+                                                    href={page.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{
+                                                        fontSize: '11px',
+                                                        color: '#60a5fa',
+                                                        textDecoration: 'none',
+                                                        backgroundColor: 'rgba(96,165,250,0.1)',
+                                                        padding: '3px 8px',
+                                                        borderRadius: '4px'
+                                                    }}
+                                                >
+                                                    {page.title || new URL(page.url).hostname}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Manual Search Links */}
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <p style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px' }}>Manual reverse image search:</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <a
+                        href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(images[0]?.imageUrl || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            fontSize: '12px', color: '#9ca3af',
+                            textDecoration: 'none',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                            backgroundColor: '#1f2937',
+                            padding: '6px 10px', borderRadius: '6px'
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>search</span>
+                        Google Lens
+                    </a>
+                    <a
+                        href={`https://tineye.com/search?url=${encodeURIComponent(images[0]?.imageUrl || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            fontSize: '12px', color: '#9ca3af',
+                            textDecoration: 'none',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                            backgroundColor: '#1f2937',
+                            padding: '6px 10px', borderRadius: '6px'
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>image_search</span>
+                        TinEye
+                    </a>
+                </div>
             </div>
         </div>
     );

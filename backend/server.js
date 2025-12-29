@@ -12,6 +12,7 @@ const express = require('express');
 const cors = require('cors');
 const { analyzeCredibility } = require('./analyzers/scoringEngine');
 const { isValidUrl, fetchUrlContent, combineForAnalysis } = require('./analyzers/urlExtractor');
+const { analyzeArticleImages } = require('./analyzers/imageAnalyzer');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,8 +32,8 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         service: 'Fake News Credibility Assistant API',
-        version: '1.1.0',
-        features: ['text-analysis', 'url-fetching', 'date-detection']
+        version: '1.2.0',
+        features: ['text-analysis', 'url-fetching', 'date-detection', 'image-verification']
     });
 });
 
@@ -94,7 +95,8 @@ app.post('/analyze', async (req, res) => {
                     fetchedDescription: extracted.description,
                     publishedDate: extracted.publishedDate,
                     author: extracted.author,
-                    wordCount: extracted.wordCount
+                    wordCount: extracted.wordCount,
+                    rawHtml: extracted.rawHtml // For image analysis
                 };
             } else {
                 console.log(`[${new Date().toISOString()}] URL fetch failed: ${extracted.error}`);
@@ -149,6 +151,25 @@ app.post('/analyze', async (req, res) => {
             }
         }
 
+        // Analyze images if we have raw HTML (runs in parallel with main analysis)
+        let imageAnalysisPromise = null;
+        if (urlData && urlData.rawHtml) {
+            console.log(`[${new Date().toISOString()}] Starting image analysis...`);
+            imageAnalysisPromise = analyzeArticleImages(urlData.rawHtml, urlData.originalUrl);
+        }
+
+        // Wait for image analysis if running
+        if (imageAnalysisPromise) {
+            try {
+                const imageAnalysis = await imageAnalysisPromise;
+                result.imageAnalysis = imageAnalysis;
+                console.log(`[${new Date().toISOString()}] Image analysis complete: ${imageAnalysis.summary?.message || 'Done'}`);
+            } catch (imgError) {
+                console.error('[ImageAnalyzer] Error:', imgError.message);
+                result.imageAnalysis = { enabled: false, error: imgError.message };
+            }
+        }
+
         // Log result summary
         console.log(`[${new Date().toISOString()}] Analysis complete: Score ${result.score} (${result.statusLabel})`);
 
@@ -193,6 +214,7 @@ app.listen(PORT, () => {
     console.log('║     ✓ URL content fetching                             ║');
     console.log('║     ✓ Date detection                                   ║');
     console.log('║     ✓ Domain analysis                                  ║');
+    console.log('║     ✓ Reverse image search                             ║');
     console.log('╚════════════════════════════════════════════════════════╝');
 });
 
