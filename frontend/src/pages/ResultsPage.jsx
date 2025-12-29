@@ -3,7 +3,7 @@
  * Clean results page with score left, details right
  * Shows URL fetch status and errors clearly
  */
-import React from 'react';
+import React, { useState } from 'react';
 import ScoreCircle from '../components/ScoreCircle';
 
 export default function ResultsPage({ result, inputText, onNewAnalysis }) {
@@ -227,6 +227,9 @@ export default function ResultsPage({ result, inputText, onNewAnalysis }) {
                         Search Google News <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>search</span>
                     </a>
                 </div>
+
+                {/* Share Card */}
+                <ShareCard score={score} statusLabel={statusLabel} statusColor={statusColor} inputText={inputText} fetchedContent={fetchedContent} urlData={urlData} />
             </main>
 
             {/* Footer */}
@@ -240,6 +243,159 @@ export default function ResultsPage({ result, inputText, onNewAnalysis }) {
                     </div>
                 </div>
             </footer>
+        </div>
+    );
+}
+
+// ShareCard Component
+function ShareCard({ score, statusLabel, statusColor, inputText, fetchedContent, urlData }) {
+    const [copied, setCopied] = useState(false);
+
+    const getTitle = () => {
+        if (fetchedContent?.title) return fetchedContent.title.substring(0, 100);
+        return inputText.substring(0, 100);
+    };
+
+    const newsUrl = urlData?.originalUrl || '';
+    const shareText = newsUrl
+        ? `I just verified this news with CrediReader!\n\n📊 Score: ${score}/100 (${statusLabel})\n📰 "${getTitle()}..."\n🔗 News: ${newsUrl}\n\n🔍 Verify news at CrediReader!`
+        : `I just verified this content with CrediReader!\n\n📊 Score: ${score}/100 (${statusLabel})\n📰 "${getTitle()}..."\n\n🔍 Verify content at CrediReader!`;
+    const shareUrl = window.location.href;
+
+    const shareLinks = [
+        {
+            name: 'Twitter',
+            icon: '𝕏',
+            color: '#000000',
+            url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`
+        },
+        {
+            name: 'WhatsApp',
+            icon: 'chat',
+            color: '#25D366',
+            url: `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`
+        },
+        {
+            name: 'Facebook',
+            icon: 'share',
+            color: '#1877F2',
+            url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`
+        },
+        {
+            name: 'LinkedIn',
+            icon: 'work',
+            color: '#0A66C2',
+            url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+        }
+    ];
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(shareText + '\n\n' + shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div style={{
+            marginTop: '24px',
+            backgroundColor: '#111827',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '20px',
+            padding: '24px'
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <div style={{
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    backgroundColor: 'rgba(96,165,250,0.1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <span className="material-symbols-outlined" style={{ color: '#60a5fa', fontSize: '18px' }}>share</span>
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'white' }}>Share This Analysis</h3>
+            </div>
+
+            {/* Share Preview Card */}
+            <div style={{
+                backgroundColor: '#0d1117',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '20px',
+                border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                    <div style={{
+                        width: '48px', height: '48px', borderRadius: '10px',
+                        backgroundColor: statusColor === 'green' ? 'rgba(34,197,94,0.2)' : statusColor === 'red' ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                        <span style={{ fontSize: '20px', fontWeight: '800', color: statusColor === 'green' ? '#22c55e' : statusColor === 'red' ? '#ef4444' : '#eab308' }}>{score}</span>
+                    </div>
+                    <div>
+                        <p style={{ fontSize: '14px', fontWeight: '600', color: 'white' }}>Credibility Score: {score}/100</p>
+                        <p style={{ fontSize: '12px', color: '#6b7280' }}>{statusLabel}</p>
+                    </div>
+                </div>
+                <p style={{ fontSize: '13px', color: '#9ca3af', lineHeight: 1.5 }}>
+                    "{getTitle()}..."
+                </p>
+            </div>
+
+            {/* Share Buttons */}
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {shareLinks.map((link, i) => (
+                    <a
+                        key={i}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '10px 16px', borderRadius: '10px',
+                            backgroundColor: '#1f2937',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            textDecoration: 'none',
+                            fontSize: '13px', fontWeight: '500',
+                            color: 'white',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={e => {
+                            e.currentTarget.style.backgroundColor = link.color;
+                            e.currentTarget.style.borderColor = link.color;
+                        }}
+                        onMouseOut={e => {
+                            e.currentTarget.style.backgroundColor = '#1f2937';
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        }}
+                    >
+                        {link.icon === '𝕏' ? (
+                            <span style={{ fontWeight: '700', fontSize: '16px' }}>𝕏</span>
+                        ) : (
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{link.icon}</span>
+                        )}
+                        {link.name}
+                    </a>
+                ))}
+
+                {/* Copy Link Button */}
+                <button
+                    onClick={copyToClipboard}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '10px 16px', borderRadius: '10px',
+                        backgroundColor: copied ? '#22c55e' : '#1f2937',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        fontSize: '13px', fontWeight: '500',
+                        color: 'white',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                        {copied ? 'check' : 'content_copy'}
+                    </span>
+                    {copied ? 'Copied!' : 'Copy Link'}
+                </button>
+            </div>
         </div>
     );
 }
