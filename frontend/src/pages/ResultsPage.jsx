@@ -240,7 +240,7 @@ export default function ResultsPage({ result, inputText, onNewAnalysis }) {
             {/* Footer */}
             <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '20px 24px' }}>
                 <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', color: '#4b5563' }}>
-                    <span>© 2024 CrediReader. AI-powered analysis.</span>
+                    <span>© 2025 CrediReader. AI-powered analysis.</span>
                     <div style={{ display: 'flex', gap: '24px' }}>
                         <a href="#" style={{ color: '#4b5563', textDecoration: 'none' }}>Methodology</a>
                         <a href="#" style={{ color: '#4b5563', textDecoration: 'none' }}>Privacy Policy</a>
