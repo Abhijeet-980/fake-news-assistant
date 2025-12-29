@@ -1,6 +1,6 @@
 # 🛡️ CrediReader - AI-Powered Fake News Detection
 
-[![Live Demo](https://fake-news-assistant.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-green)](https://fake-news-assistant.vercel.app/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **CrediReader** is an intelligent fake news detection tool that combines AI classification, fact-checking databases, and reverse image search to help users verify news credibility.
@@ -226,4 +226,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 --
 
-Build By Team Breaking !!!!!!!!!!!!
+Build By Team Breaking !!!!!!!!!! 
