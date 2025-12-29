@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import AnalyzingPage from './pages/AnalyzingPage';
 import ResultsPage from './pages/ResultsPage';
+import { ResultsSkeleton } from './components/SkeletonLoader';
 import './index.css';
 
 // API configuration
@@ -46,8 +47,9 @@ function App() {
 
       const result = await response.json();
 
-      // Add a small delay to show the analyzing animation
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      // Show skeleton loading briefly before showing results
+      setCurrentPage('loading');
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       setAnalysisResult(result);
       setCurrentPage('results');
@@ -82,6 +84,9 @@ function App() {
   switch (currentPage) {
     case 'analyzing':
       return <AnalyzingPage onCancel={handleCancel} />;
+
+    case 'loading':
+      return <ResultsSkeleton />;
 
     case 'results':
       return (
