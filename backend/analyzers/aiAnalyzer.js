@@ -57,7 +57,18 @@ async function analyzeWithAI(text) {
         return { success: false, enabled: false, error: 'No API key configured' };
     }
 
+    // Get current date for context (AI models may have outdated training data)
+    const today = new Date();
+    const currentDate = today.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
     const prompt = `You are a fact-checking AI assistant. Analyze the following content and provide a credibility assessment.
+
+IMPORTANT: Today's date is ${currentDate}. Use this as your reference for determining if dates in the content are current, past, or future.
 
 CONTENT TO ANALYZE:
 """
