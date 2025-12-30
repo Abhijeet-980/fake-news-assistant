@@ -192,12 +192,22 @@ function generateSearchUrl(text) {
  * @returns {Promise<Object>} - Complete analysis result
  */
 async function analyzeCredibility(text, options = {}) {
-    const { publishedDate, skipFactCheck } = options;
+    const { publishedDate, skipFactCheck, onProgress } = options;
+
+    const reportProgress = (percent, status) => {
+        if (typeof onProgress === 'function') {
+            onProgress({ percent, status });
+        }
+    };
+
+    reportProgress(5, 'Initializing analysis...');
 
     // Perform domain analysis
+    reportProgress(10, 'Extracting content and analyzing domain...');
     const domainAnalysis = analyzeDomain(text);
 
     // Perform language analysis
+    reportProgress(30, 'Analyzing language patterns and emotional tone...');
     const languageAnalysis = analyzeLanguage(text);
 
     // Perform date analysis (pass published date if available)
@@ -206,6 +216,7 @@ async function analyzeCredibility(text, options = {}) {
     // Perform fact-check analysis (async)
     let factCheckAnalysis = null;
     if (!skipFactCheck) {
+        reportProgress(50, 'Verifying claims against fact-check databases...');
         try {
             factCheckAnalysis = await analyzeFactChecks(text);
         } catch (error) {
@@ -221,6 +232,7 @@ async function analyzeCredibility(text, options = {}) {
     }
 
     // Perform AI analysis (async) - key feature for detecting satire/fiction
+    reportProgress(70, 'Running AI deep classification...');
     let aiAnalysis = null;
     try {
         aiAnalysis = await analyzeWithAI(text);
@@ -228,6 +240,8 @@ async function analyzeCredibility(text, options = {}) {
         console.error('[AI Analyzer] Analysis failed:', error.message);
         aiAnalysis = { success: false, enabled: true, error: error.message };
     }
+
+    reportProgress(90, 'Finalizing scoring and credibility report...');
 
     // Calculate total score (max 100)
     // Domain: 30 points, Emotional: 25 points, Sensationalism: 20 points, Evidence: 25 points

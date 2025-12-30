@@ -164,27 +164,35 @@ function ScanningText({ text, position }) {
     );
 }
 
-export default function AnalyzingPage({ onCancel }) {
+export default function AnalyzingPage({ onCancel, progress: externalProgress, statusText }) {
     const [progress, setProgress] = useState(0);
-    const [currentStep, setCurrentStep] = useState(0);
     const [dots, setDots] = useState('');
 
+    // Determine the current step index based on progress
+    // Step 0: Initial/Source (0-30%)
+    // Step 1: Language (30-70%)
+    // Step 2: Final Verdict (70-100%)
+    const currentStep = externalProgress < 30 ? 0 : externalProgress < 70 ? 1 : 2;
+
     useEffect(() => {
-        const progressInterval = setInterval(() => {
-            setProgress(prev => prev >= 95 ? 95 : prev + Math.random() * 3);
-        }, 100);
-        const stepInterval = setInterval(() => {
-            setCurrentStep(prev => prev >= 2 ? 2 : prev + 1);
-        }, 1200);
+        // Smooth out the progress visualization
+        if (externalProgress !== undefined) {
+            setProgress(externalProgress);
+        }
+    }, [externalProgress]);
+
+    useEffect(() => {
         const dotsInterval = setInterval(() => {
             setDots(prev => prev.length >= 3 ? '' : prev + '.');
         }, 500);
-        return () => {
-            clearInterval(progressInterval);
-            clearInterval(stepInterval);
-            clearInterval(dotsInterval);
-        };
+        return () => clearInterval(dotsInterval);
     }, []);
+
+    // Dynamic radar speed: faster when progress is moving
+    const radarSpeed = externalProgress > 0 && externalProgress < 100 ? '1s' : '2.5s';
+
+    // Dynamic color based on progress stage
+    const activeColor = externalProgress < 30 ? '#3b82f6' : externalProgress < 70 ? '#8b5cf6' : '#22c55e';
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#080c14', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -192,13 +200,34 @@ export default function AnalyzingPage({ onCancel }) {
             <div style={{
                 position: 'fixed',
                 inset: 0,
-                background: 'radial-gradient(circle at 50% 50%, rgba(59,130,246,0.08) 0%, transparent 50%)',
+                background: `radial-gradient(circle at 50% 50%, ${activeColor}15 0%, transparent 50%)`,
+                transition: 'background 1s ease',
                 animation: 'bgPulse 4s ease-in-out infinite'
             }} />
             <style>{`
                 @keyframes bgPulse {
                     0%, 100% { opacity: 0.5; transform: scale(1); }
                     50% { opacity: 1; transform: scale(1.1); }
+                }
+            `}</style>
+
+            {/* Scanning Line Animation */}
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '2px',
+                background: `linear-gradient(90deg, transparent, ${activeColor}, transparent)`,
+                boxShadow: `0 0 10px ${activeColor}`,
+                zIndex: 2,
+                opacity: 0.3,
+                animation: 'scanningLine 4s linear infinite'
+            }} />
+            <style>{`
+                @keyframes scanningLine {
+                    0% { top: 0% }
+                    100% { top: 100% }
                 }
             `}</style>
 
@@ -212,8 +241,9 @@ export default function AnalyzingPage({ onCancel }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
                         width: '32px', height: '32px', borderRadius: '8px',
-                        backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        animation: 'logoGlow 2s ease-in-out infinite'
+                        backgroundColor: activeColor, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'logoGlow 2s ease-in-out infinite',
+                        transition: 'background-color 0.5s ease'
                     }}>
                         <span className="material-symbols-outlined" style={{ color: 'white', fontSize: '18px' }}>verified_user</span>
                     </div>
@@ -235,21 +265,22 @@ export default function AnalyzingPage({ onCancel }) {
                     <div style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px',
                         padding: '6px 14px', borderRadius: '999px',
-                        backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
+                        backgroundColor: `${activeColor}20`, border: `1px solid ${activeColor}50`,
+                        transition: 'all 0.5s ease',
                         animation: 'badgePulse 2s ease-in-out infinite'
                     }}>
                         <div style={{
                             width: '8px', height: '8px', borderRadius: '50%',
-                            backgroundColor: '#3b82f6',
+                            backgroundColor: activeColor,
                             animation: 'dotBlink 1s infinite'
                         }} />
-                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Live Analysis
+                        <span style={{ fontSize: '11px', fontWeight: '600', color: activeColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {statusText || 'Initializing Analysis'}
                         </span>
                     </div>
                     <style>{`
                         @keyframes badgePulse {
-                            0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+                            0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.2); }
                             50% { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
                         }
                         @keyframes dotBlink {
@@ -258,16 +289,16 @@ export default function AnalyzingPage({ onCancel }) {
                         }
                     `}</style>
 
-                    {/* Title with typing effect */}
+                    {/* Title */}
                     <div style={{ textAlign: 'center' }}>
                         <h1 style={{
                             fontSize: '36px', fontWeight: '700', color: 'white', marginBottom: '12px',
                             animation: 'fadeInUp 0.6s ease-out'
                         }}>
-                            Verification in Progress{dots}
+                            {externalProgress === 100 ? 'Analysis Complete' : `Verification in Progress${dots}`}
                         </h1>
-                        <p style={{ fontSize: '15px', color: '#6b7280', maxWidth: '400px' }}>
-                            Our AI is currently analyzing patterns across thousands of sources to determine credibility.
+                        <p style={{ fontSize: '15px', color: '#6b7280', maxWidth: '400px', margin: '0 auto' }}>
+                            {statusText ? `Current step: ${statusText}` : "Our AI is currently analyzing patterns across thousands of sources to determine credibility."}
                         </p>
                     </div>
 
@@ -279,11 +310,29 @@ export default function AnalyzingPage({ onCancel }) {
                         {/* Static circles */}
                         <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.1)' }} />
                         <div style={{ position: 'absolute', inset: '25px', borderRadius: '50%', border: '1px dashed rgba(255,255,255,0.08)' }} />
-                        <div style={{ position: 'absolute', inset: '55px', borderRadius: '50%', border: '1px solid rgba(59,130,246,0.3)' }} />
-                        <div style={{ position: 'absolute', inset: '85px', borderRadius: '50%', border: '1px dashed rgba(59,130,246,0.2)' }} />
+                        <div style={{ position: 'absolute', inset: '55px', borderRadius: '50%', border: `1px solid ${activeColor}40` }} />
+                        <div style={{ position: 'absolute', inset: '85px', borderRadius: '50%', border: '1px dashed rgba(255,255,255,0.1)' }} />
 
                         {/* Radar sweep */}
-                        <RadarSweep />
+                        <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: '50%',
+                            overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                width: '50%',
+                                height: '4px',
+                                transformOrigin: 'left center',
+                                background: `linear-gradient(90deg, ${activeColor}CC, transparent)`,
+                                animation: `radarSweep ${radarSpeed} linear infinite`,
+                                boxShadow: `0 0 20px ${activeColor}80`,
+                                transition: 'background 0.5s ease'
+                            }} />
+                        </div>
 
                         {/* Particles */}
                         <Particles />
@@ -292,52 +341,43 @@ export default function AnalyzingPage({ onCancel }) {
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{
                                 width: '90px', height: '90px', borderRadius: '50%',
-                                background: 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(59,130,246,0.1))',
-                                border: '2px solid rgba(59,130,246,0.5)',
+                                background: `linear-gradient(135deg, ${activeColor}40, ${activeColor}10)`,
+                                border: `2px solid ${activeColor}80`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 animation: 'centerPulse 2s ease-in-out infinite',
-                                boxShadow: '0 0 30px rgba(59,130,246,0.3)'
+                                boxShadow: `0 0 30px ${activeColor}40`,
+                                transition: 'all 0.5s ease'
                             }}>
                                 <span className="material-symbols-outlined" style={{
-                                    fontSize: '44px', color: '#3b82f6',
+                                    fontSize: '44px', color: activeColor,
                                     animation: 'iconRotate 8s linear infinite'
                                 }}>radar</span>
                             </div>
                         </div>
-                        <style>{`
-                            @keyframes centerPulse {
-                                0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(59,130,246,0.3); }
-                                50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(59,130,246,0.5); }
-                            }
-                            @keyframes iconRotate {
-                                from { transform: rotate(0deg); }
-                                to { transform: rotate(360deg); }
-                            }
-                        `}</style>
 
                         {/* Floating badges */}
                         <FloatingBadge
                             position={{ top: '10px', right: '-30px' }}
                             icon="check_circle"
-                            iconColor="#22c55e"
-                            label="Source"
-                            value="Verified"
+                            iconColor={externalProgress >= 30 ? "#22c55e" : "#6b7280"}
+                            label="Domain"
+                            value={externalProgress >= 30 ? "Checked" : "Waiting"}
                             delay={0}
                         />
                         <FloatingBadge
                             position={{ bottom: '10px', left: '-30px' }}
                             icon="psychology"
-                            iconColor="#f59e0b"
-                            label="Tone"
-                            value="Analyzing..."
+                            iconColor={externalProgress >= 70 ? "#8b5cf6" : externalProgress >= 40 ? "#f59e0b" : "#6b7280"}
+                            label="AI Deep"
+                            value={externalProgress >= 70 ? "Complete" : externalProgress >= 40 ? "Analyzing" : "Queued"}
                             delay={0.5}
                         />
                         <FloatingBadge
                             position={{ top: '50%', left: '-50px', transform: 'translateY(-50%)' }}
                             icon="fact_check"
-                            iconColor="#8b5cf6"
+                            iconColor={externalProgress >= 60 ? "#8b5cf6" : "#6b7280"}
                             label="Facts"
-                            value="Checking"
+                            value={externalProgress >= 60 ? "Verified" : "Connecting"}
                             delay={1}
                         />
 
@@ -351,8 +391,9 @@ export default function AnalyzingPage({ onCancel }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                             <span style={{ fontSize: '14px', color: '#9ca3af', fontWeight: '500' }}>Analysis Status</span>
                             <span style={{
-                                fontSize: '16px', fontWeight: '700', color: '#3b82f6',
-                                textShadow: '0 0 10px rgba(59,130,246,0.5)'
+                                fontSize: '16px', fontWeight: '700', color: activeColor,
+                                textShadow: `0 0 10px ${activeColor}80`,
+                                transition: 'color 0.5s ease'
                             }}>{Math.round(progress)}%</span>
                         </div>
                         <div style={{
@@ -362,10 +403,10 @@ export default function AnalyzingPage({ onCancel }) {
                             <div style={{
                                 height: '100%',
                                 width: `${progress}%`,
-                                background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+                                background: `linear-gradient(90deg, ${activeColor}, ${activeColor}aa)`,
                                 borderRadius: '4px',
-                                transition: 'width 0.3s ease-out',
-                                boxShadow: '0 0 15px rgba(59,130,246,0.5)',
+                                transition: 'width 0.5s ease-out, background-color 0.5s ease',
+                                boxShadow: `0 0 15px ${activeColor}80`,
                                 position: 'relative'
                             }}>
                                 <div style={{
@@ -379,15 +420,11 @@ export default function AnalyzingPage({ onCancel }) {
                                 }} />
                             </div>
                         </div>
-                        <style>{`
-                            @keyframes progressShine {
-                                0%, 100% { opacity: 0; }
-                                50% { opacity: 1; }
-                            }
-                        `}</style>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '11px', color: '#4b5563', fontFamily: 'monospace' }}>
                             <span>START: {new Date().toLocaleTimeString('en-US', { hour12: false })}</span>
-                            <span style={{ color: '#3b82f6' }}>EST. REMAINING: {Math.max(0, Math.round((100 - progress) / 12))}s</span>
+                            <span style={{ color: activeColor, transition: 'color 0.5s ease' }}>
+                                {externalProgress === 100 ? "COMPLETE" : `EST. REMAINING: ${Math.max(0, Math.round((100 - progress) / 8))}s`}
+                            </span>
                         </div>
                     </div>
 
@@ -400,46 +437,29 @@ export default function AnalyzingPage({ onCancel }) {
                                 <div key={step.id} style={{
                                     padding: '20px',
                                     borderRadius: '14px',
-                                    backgroundColor: isActive ? 'rgba(59,130,246,0.1)' : '#111827',
-                                    border: isActive ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.06)',
+                                    backgroundColor: isActive ? `${activeColor}15` : '#111827',
+                                    border: isActive ? `1px solid ${activeColor}80` : '1px solid rgba(255,255,255,0.06)',
                                     opacity: index > currentStep ? 0.5 : 1,
                                     transform: isActive ? 'scale(1.02)' : 'scale(1)',
-                                    transition: 'all 0.3s ease-out',
+                                    transition: 'all 0.4s ease-out',
                                     animation: `stepFadeIn 0.5s ease-out ${index * 0.15}s both`
                                 }}>
-                                    <style>{`
-                                        @keyframes stepFadeIn {
-                                            from { opacity: 0; transform: translateY(20px); }
-                                            to { opacity: 1; transform: translateY(0); }
-                                        }
-                                    `}</style>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                                         <div style={{
                                             width: '44px', height: '44px', borderRadius: '12px',
-                                            backgroundColor: isCompleted ? 'rgba(34,197,94,0.15)' : isActive ? 'rgba(59,130,246,0.15)' : '#1f2937',
+                                            backgroundColor: isCompleted ? 'rgba(34,197,94,0.15)' : isActive ? `${activeColor}20` : '#1f2937',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             transition: 'all 0.3s ease-out'
                                         }}>
                                             <span className="material-symbols-outlined" style={{
                                                 fontSize: '22px',
-                                                color: isCompleted ? '#22c55e' : isActive ? '#3b82f6' : '#6b7280',
-                                                animation: isActive ? 'iconSpin 2s linear infinite' : 'none'
+                                                color: isCompleted ? '#22c55e' : isActive ? activeColor : '#6b7280',
+                                                animation: isActive ? 'iconSpin 2s linear infinite' : 'none',
+                                                transition: 'color 0.3s ease'
                                             }}>{isCompleted ? 'check_circle' : step.icon}</span>
                                         </div>
-                                        <style>{`
-                                            @keyframes iconSpin {
-                                                from { transform: rotate(0deg); }
-                                                to { transform: rotate(360deg); }
-                                            }
-                                        `}</style>
                                         {isCompleted && <span className="material-symbols-outlined" style={{ color: '#22c55e', fontSize: '20px' }}>check</span>}
-                                        {isActive && <span style={{ fontSize: '10px', fontWeight: '700', color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', padding: '4px 10px', borderRadius: '999px', textTransform: 'uppercase', animation: 'activePulse 1.5s ease-in-out infinite' }}>Active</span>}
-                                        <style>{`
-                                            @keyframes activePulse {
-                                                0%, 100% { opacity: 1; }
-                                                50% { opacity: 0.6; }
-                                            }
-                                        `}</style>
+                                        {isActive && <span style={{ fontSize: '10px', fontWeight: '700', color: activeColor, backgroundColor: `${activeColor}20`, padding: '4px 10px', borderRadius: '999px', textTransform: 'uppercase', animation: 'activePulse 1.5s ease-in-out infinite' }}>Active</span>}
                                     </div>
                                     <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'white', marginBottom: '6px' }}>{step.title}</h3>
                                     <p style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.5 }}>{step.description}</p>
@@ -469,3 +489,5 @@ export default function AnalyzingPage({ onCancel }) {
         </div>
     );
 }
+
+// Sub-components need to be updated to use common animations (already defined globally in original file)

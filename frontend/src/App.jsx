@@ -24,6 +24,8 @@ function App() {
   const [inputText, setInputText] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisStatus, setAnalysisStatus] = useState('');
 
   /**
    * Handle analyze request
@@ -32,10 +34,12 @@ function App() {
   const handleAnalyze = async (text) => {
     setInputText(text);
     setError(null);
+    setAnalysisProgress(0);
+    setAnalysisStatus('Connecting to server...');
     setCurrentPage('analyzing');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/analyze`, {
+      const response = await fetch(`${API_BASE_URL}/analyze-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,20 +52,53 @@ function App() {
         throw new Error(errorData.message || 'Analysis failed');
       }
 
-      const result = await response.json();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      // Show skeleton loading briefly before showing results
-      setCurrentPage('loading');
-      await new Promise(resolve => setTimeout(resolve, 800));
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-      setAnalysisResult(result);
-      setCurrentPage('results');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // Keep the last incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.error) {
+              throw new Error(data.message || 'Streaming failed');
+            }
+
+            if (data.result) {
+              // We got the final result
+              setAnalysisResult(data.result);
+              setAnalysisProgress(100);
+              setAnalysisStatus('Analysis complete!');
+
+              // Move to results page after a short delay for "completion feel"
+              setTimeout(() => {
+                setCurrentPage('results');
+              }, 600);
+              return;
+            }
+
+            if (data.percent !== undefined) {
+              setAnalysisProgress(data.percent);
+            }
+            if (data.status) {
+              setAnalysisStatus(data.status);
+            }
+          }
+        }
+      }
 
     } catch (err) {
       console.error('Analysis error:', err);
       setError(err.message);
       setCurrentPage('landing');
-      // You could show an error toast here
     }
   };
 
@@ -93,7 +130,13 @@ function App() {
   // Render current page
   switch (currentPage) {
     case 'analyzing':
-      return <AnalyzingPage onCancel={handleCancel} />;
+      return (
+        <AnalyzingPage
+          onCancel={handleCancel}
+          progress={analysisProgress}
+          statusText={analysisStatus}
+        />
+      );
 
     case 'loading':
       return <ResultsSkeleton />;
