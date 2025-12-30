@@ -55,6 +55,99 @@ app.get('/health', (req, res) => {
 });
 
 /**
+ * Streaming analysis endpoint
+ * POST /analyze-stream
+ * Body: { "text": "content to analyze" }
+ */
+app.post('/analyze-stream', async (req, res) => {
+    try {
+        const { text } = req.body;
+
+        // Same validation as main endpoint
+        if (!text || typeof text !== 'string' || text.trim().length < 10) {
+            return res.status(400).json({
+                error: 'Invalid input',
+                message: 'Please provide valid text content to analyze (minimum 10 characters).'
+            });
+        }
+
+        const trimmedText = text.trim();
+
+        // Set headers for streaming
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const sendUpdate = (data) => {
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        };
+
+        let contentToAnalyze = trimmedText;
+        let urlData = null;
+
+        // URL detection logic (simplified for the stream start)
+        if (isValidUrl(trimmedText)) {
+            sendUpdate({ percent: 5, status: 'URL detected, fetching content...' });
+            const extracted = await fetchUrlContent(trimmedText);
+            if (extracted.success) {
+                contentToAnalyze = combineForAnalysis(extracted);
+                urlData = {
+                    originalUrl: trimmedText,
+                    fetchedTitle: extracted.title,
+                    fetchedDescription: extracted.description,
+                    publishedDate: extracted.publishedDate,
+                    author: extracted.author,
+                    wordCount: extracted.wordCount,
+                    rawHtml: extracted.rawHtml
+                };
+            }
+        }
+
+        // Perform analysis with progress updates
+        const result = await analyzeCredibility(contentToAnalyze, {
+            publishedDate: urlData?.publishedDate,
+            onProgress: (update) => {
+                sendUpdate(update);
+            }
+        });
+
+        // Add URL data if applicable
+        if (urlData) {
+            result.urlData = urlData;
+            if (urlData.fetchedTitle) {
+                result.fetchedContent = {
+                    title: urlData.fetchedTitle,
+                    description: urlData.fetchedDescription,
+                    publishedDate: urlData.publishedDate,
+                    author: urlData.author,
+                    wordCount: urlData.wordCount
+                };
+            }
+        }
+
+        // Image analysis
+        if (urlData && urlData.rawHtml) {
+            sendUpdate({ percent: 95, status: 'Analyzing article images...' });
+            try {
+                const imageAnalysis = await analyzeArticleImages(urlData.rawHtml, urlData.originalUrl);
+                result.imageAnalysis = imageAnalysis;
+            } catch (imgError) {
+                result.imageAnalysis = { enabled: false, error: imgError.message };
+            }
+        }
+
+        // Send final result
+        sendUpdate({ percent: 100, status: 'Complete', result });
+        res.end();
+
+    } catch (error) {
+        console.error('Streaming analysis error:', error);
+        res.write(`data: ${JSON.stringify({ error: 'Analysis failed', message: error.message })}\n\n`);
+        res.end();
+    }
+});
+
+/**
  * Main analysis endpoint
  * POST /analyze
  * Body: { "text": "content to analyze" } or { "text": "https://example.com/article" }
